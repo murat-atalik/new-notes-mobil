@@ -50,6 +50,10 @@ Mobil uygulama şu endpoint sözleşmesini kullanır:
 - `GET/POST/PUT/DELETE /api/lists` — listeler
 - `GET/POST/PUT/DELETE /api/items` — normalize edilmiş liste maddeleri
 
+State yönetimi Redux Toolkit ile yapılır; ekranlar `src/screens/` altında,
+root navigation ise `App.tsx` içinde tutulur. API bağlantı hataları mock veriyle
+gizlenmez ve Jest senaryolarıyla doğrulanır.
+
 `new-notes-main` içindeki API şu an token tabanlı yetkilendirme sağlamadığı için
 bu entegrasyon mevcut geliştirme sözleşmesini kullanır; production'a çıkmadan
 önce backend'de gerçek oturum, parola hash'leme ve kullanıcı/family

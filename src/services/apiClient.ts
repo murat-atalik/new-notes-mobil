@@ -20,13 +20,27 @@ type RequestOptions = {
 };
 
 async function request<T>(path: string, options?: RequestOptions): Promise<T> {
-  const response = await globalThis.fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  });
-  const body = (await response.json()) as { success?: boolean; error?: string };
+  const url = `${API_BASE_URL}${path}`;
+  let response: Awaited<ReturnType<typeof globalThis.fetch>>;
+  try {
+    response = await globalThis.fetch(url, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    });
+  } catch (error) {
+    throw new Error(
+      `Network request failed for ${url}: ${error instanceof Error ? error.message : 'unknown error'}`,
+    );
+  }
+
+  let body: { success?: boolean; error?: string };
+  try {
+    body = (await response.json()) as { success?: boolean; error?: string };
+  } catch {
+    throw new Error(`Invalid API response from ${url} (${response.status})`);
+  }
   if (!response.ok || body.success === false) {
-    throw new Error(body.error ?? `API request failed: ${response.status}`);
+    throw new Error(body.error ?? `API request failed: ${response.status} (${url})`);
   }
   return body as T;
 }
