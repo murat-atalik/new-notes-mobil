@@ -93,6 +93,7 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: true,
         title: tabLabels[route.name],
+        tabBarIcon: () => <Text style={styles.navIcon}>{strings.icons[route.name]}</Text>,
       })}
     >
       <Tabs.Screen name="lists">
@@ -112,11 +113,29 @@ function MainTabs() {
           />
         )}
       </Tabs.Screen>
-      <Tabs.Screen name="finance">{() => <OverviewScreen tab="finance" />}</Tabs.Screen>
+      <Tabs.Screen name="finance">
+        {() => (
+          <OverviewScreen
+            tab="finance"
+            expenses={state.expenses}
+            paymentCards={state.paymentCards}
+            savingsGoals={state.savingsGoals}
+          />
+        )}
+      </Tabs.Screen>
       <Tabs.Screen name="family">
         {() => <FamilyScreen user={currentUser} onUserChange={(user) => dispatch(setUser(user))} />}
       </Tabs.Screen>
-      <Tabs.Screen name="analytics">{() => <OverviewScreen tab="analytics" />}</Tabs.Screen>
+      <Tabs.Screen name="analytics">
+        {() => (
+          <OverviewScreen
+            tab="analytics"
+            expenses={state.expenses}
+            paymentCards={state.paymentCards}
+            savingsGoals={state.savingsGoals}
+          />
+        )}
+      </Tabs.Screen>
       <Tabs.Screen name="settings">
         {() => (
           <SettingsScreen

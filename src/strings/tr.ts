@@ -38,6 +38,7 @@ export const strings = {
     createSubmit: 'Oluştur',
     deleteButton: 'Sil',
     emptyServer: 'Sunucuda kayıtlı liste bulunamadı.',
+    emptySearch: 'Aramanızla eşleşen liste bulunamadı.',
     metricLists: 'Liste',
     metricNotes: 'Not',
     metricPending: 'Bekleyen',
@@ -102,6 +103,7 @@ export const strings = {
     analytics: 'Raporlar',
     settings: 'Ayarlar',
   },
+  icons: { lists: '✓', finance: '₺', family: '♧', analytics: '▥', settings: '⚙' },
   family: {
     title: 'Ailemiz',
     lead: 'Ailenizle ortak listeleri ve üyeleri yönetin.',
@@ -130,6 +132,13 @@ export const strings = {
     noFamily: 'Henüz bir aileye bağlı değilsiniz.',
   },
   overview: {
+    metrics: {
+      expenses: 'Toplam harcama',
+      cards: 'Kart / hesap',
+      goals: 'Birikim hedefi',
+      pending: 'Bekleyen görev',
+    },
+    chart: { expenses: 'Harcama', cards: 'Kartlar', goals: 'Birikim' },
     finance: {
       emoji: '💳',
       title: 'Finans',

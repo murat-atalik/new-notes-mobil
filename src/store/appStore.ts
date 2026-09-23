@@ -1,8 +1,8 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import { authenticate, createList, deleteList, fetchLists } from '../services/apiClient';
+import { authenticate, createList, deleteList, fetchInitialData } from '../services/apiClient';
 import { loadState, saveState } from '../services/storageService';
-import type { AppList, ListType, User } from '../types';
+import type { AppList, Expense, ListType, PaymentCard, SavingsGoal, User } from '../types';
 import type { RootState } from './store';
 
 type AppState = {
@@ -11,26 +11,50 @@ type AppState = {
   dark: boolean;
   status: 'idle' | 'loading' | 'ready' | 'failed';
   error: string | null;
+  expenses: Expense[];
+  paymentCards: PaymentCard[];
+  savingsGoals: SavingsGoal[];
 };
 
-const initialState: AppState = { user: null, lists: [], dark: false, status: 'idle', error: null };
+const initialState: AppState = {
+  user: null,
+  lists: [],
+  dark: false,
+  status: 'idle',
+  error: null,
+  expenses: [],
+  paymentCards: [],
+  savingsGoals: [],
+};
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Sunucu isteği başarısız oldu';
 
 export const hydrateApp = createAsyncThunk('app/hydrate', async () => {
   const saved = await loadState();
-  if (!saved) return { user: null, lists: [], dark: false };
-  const lists = await fetchLists();
-  return { user: saved.user, lists, dark: saved.dark };
+  const data = await fetchInitialData();
+  return {
+    user: saved?.user ?? null,
+    lists: data.lists,
+    dark: saved?.dark ?? false,
+    expenses: data.expenses,
+    paymentCards: data.paymentCards,
+    savingsGoals: data.savingsGoals,
+  };
 });
 
 export const signIn = createAsyncThunk(
   'app/signIn',
   async ({ username, password, name }: { username: string; password: string; name?: string }) => {
     const user = await authenticate(username, password, name);
-    const lists = await fetchLists();
-    return { user, lists };
+    const data = await fetchInitialData();
+    return {
+      user,
+      lists: data.lists,
+      expenses: data.expenses,
+      paymentCards: data.paymentCards,
+      savingsGoals: data.savingsGoals,
+    };
   },
 );
 

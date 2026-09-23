@@ -51,4 +51,33 @@ export type User = {
   createdAt?: string;
 };
 export type FamilyMember = User;
+export type Expense = {
+  id: string;
+  userId: string;
+  familyId?: string;
+  amount: number;
+  currency?: string;
+  categoryName: string;
+  date: string;
+  paymentMethod?: string;
+  cardName?: string;
+  note?: string;
+};
+export type PaymentCard = {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  currentDebt?: number;
+  creditLimit?: number;
+  currency?: string;
+  color?: string;
+};
+export type SavingsGoal = {
+  id: string;
+  title: string;
+  currentAmount: number;
+  targetAmount?: number;
+  currency?: string;
+};
 export type PersistedState = { user: User; lists: AppList[]; dark: boolean };

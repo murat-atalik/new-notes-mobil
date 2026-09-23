@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config/api';
-import type { AppList, Item, ListType, User } from '../types';
+import type { AppList, Expense, Item, ListType, PaymentCard, SavingsGoal, User } from '../types';
 
 type ApiUser = User & { password?: string | null };
 type ApiList = Omit<AppList, 'items' | 'updatedAt'> & {
@@ -110,6 +110,7 @@ export async function fetchLists(): Promise<AppList[]> {
     });
     itemsByList.set(item.listId ?? '', current);
   }
+
   return serverLists.map((list) => ({
     ...list,
     description: list.description ?? '',
@@ -117,6 +118,42 @@ export async function fetchLists(): Promise<AppList[]> {
     isShared: list.isShared ?? true,
     items: itemsByList.get(list.id) ?? [],
   }));
+}
+
+export type InitialData = {
+  lists: ApiList[];
+  items: ApiItem[];
+  expenses: Expense[];
+  users: ApiUser[];
+  paymentCards: PaymentCard[];
+  savingsGoals: SavingsGoal[];
+};
+
+export async function fetchInitialData(): Promise<InitialData & { lists: AppList[] }> {
+  const response = await request<{ data: InitialData }>('/api/initial-data');
+  const { lists, items } = response.data;
+  const itemsByList = new Map<string, Item[]>();
+  for (const item of items) {
+    const current = itemsByList.get(item.listId ?? '') ?? [];
+    current.push({
+      ...item,
+      quantity: item.quantity,
+      isCompleted: item.isCompleted,
+      isPinned: item.isPinned,
+      priority: priorityToServer(item.priority),
+    });
+    itemsByList.set(item.listId ?? '', current);
+  }
+  return {
+    ...response.data,
+    lists: lists.map((list) => ({
+      ...list,
+      description: list.description ?? '',
+      updatedAt: list.updatedAt ?? list.createdAt ?? new Date().toISOString(),
+      isShared: list.isShared ?? true,
+      items: itemsByList.get(list.id) ?? [],
+    })),
+  };
 }
 
 export async function createList(

@@ -60,7 +60,9 @@ Mobil uygulama şu endpoint sözleşmesini kullanır:
 
 State yönetimi Redux Toolkit ile yapılır; ekranlar `src/screens/` altında,
 root navigation ise `App.tsx` içinde tutulur. API bağlantı hataları mock veriyle
-gizlenmez ve Jest senaryolarıyla doğrulanır.
+gizlenmez ve Jest senaryolarıyla doğrulanır. Ana ekranlar canlı initial-data
+yanıtındaki listeler, harcamalar, kartlar ve birikim hedefleriyle metrik kartları,
+ikonlar ve grafik özetleri üretir; görsel özetlerde sabit mock rakam kullanılmaz.
 
 `new-notes-main` API route'ları DB bağlantısı yoksa artık 503 döndürür; hiçbir
 endpoint mobil istemciye seed/mock veri dönmez. Production'a çıkmadan önce
