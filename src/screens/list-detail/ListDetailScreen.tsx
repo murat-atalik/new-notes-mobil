@@ -1,9 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { View } from 'react-native';
-import { CheckCheck, Eraser, FileQuestion, MoreHorizontal, Pencil, Plus, ShoppingBag, Trash2, Undo2, UserPlus } from 'lucide-react-native';
+import { CheckCheck, Eraser, FileQuestion, LogOut, MoreHorizontal, Pencil, Plus, Trash2, Undo2, UserPlus } from 'lucide-react-native';
 
 import {
-  Button,
   EmptyState,
   FAB,
   IconButton,
@@ -14,8 +12,7 @@ import {
   type ActionSheetOption,
   type TextInputHandle,
 } from '../../design';
-import { formatMoney } from '../../logic/format';
-import { shoppingTotals, useListItems } from '../../logic/selectors';
+import { listMembership, useListItems } from '../../logic/selectors';
 import type { RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import { listSubtitle, splitTitles, useAccessibleList, useCategoriesFor } from './helpers';
@@ -36,6 +33,7 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
   const unmarkAll = useAppStore((s) => s.unmarkAllItemsCompleted);
   const clearCompleted = useAppStore((s) => s.clearCompletedItems);
   const deleteList = useAppStore((s) => s.deleteList);
+  const leaveList = useAppStore((s) => s.leaveList);
   const syncWithServer = useAppStore((s) => s.syncWithServer);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +85,7 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
 
   const completedCount = items.filter((i) => i.isCompleted).length;
   const allDone = items.length > 0 && completedCount === items.length;
-  const isOwner = list.ownerId === currentUser.id;
+  const { isOwner, canLeave } = listMembership(list, currentUser);
 
   const openMenu = () => {
     const options: ActionSheetOption[] = [{ label: 'Listeyi Düzenle', icon: Pencil, onPress: () => navigation.navigate('ListForm', { listId: list.id }) }];
@@ -128,6 +126,24 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
           }),
       });
     }
+    if (canLeave) {
+      options.push({
+          label: 'Listeden Ayrıl',
+          icon: LogOut,
+          destructive: true,
+          onPress: () =>
+            confirmAction({
+              title: 'Listeden ayrılınsın mı?',
+              message: `"${list.title}" listesine artık erişemeyeceksin. Tekrar katılmak için davet kodu gerekir.`,
+              confirmText: 'Ayrıl',
+              onConfirm: () => {
+                leaveList(list.id);
+                navigation.goBack();
+                showToast('Listeden ayrıldın');
+              },
+            }),
+        });
+    }
     showActionSheet({ title: list.title, options });
   };
 
@@ -138,20 +154,10 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
     </>
   );
 
-  const checkedTotal = shoppingTotals(items).checked;
+  // Checkout lives in the shopping summary card; the footer is only the capture bar.
   const footer =
     list.type === 'NOTE' ? undefined : (
-      <View style={{ gap: 10 }}>
-        {list.type === 'SHOPPING' && completedCount > 0 ? (
-          <Button
-            title={checkedTotal > 0 ? `Alışverişi Tamamla · ${formatMoney(checkedTotal)}` : 'Alışverişi Tamamla'}
-            icon={ShoppingBag}
-            onPress={() => navigation.navigate('Checkout', { listId: list.id })}
-            fullWidth
-          />
-        ) : null}
-        <QuickAddBar placeholder={list.type === 'SHOPPING' ? 'Ürün ekle…' : 'Görev ekle…'} onSubmit={quickAdd} inputRef={inputRef} />
-      </View>
+      <QuickAddBar placeholder={list.type === 'SHOPPING' ? 'Ürün ekle… (virgülle birden fazla)' : 'Görev ekle…'} onSubmit={quickAdd} inputRef={inputRef} />
     );
 
   const focusInput = () => inputRef.current?.focus();

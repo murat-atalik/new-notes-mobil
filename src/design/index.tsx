@@ -14,7 +14,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import * as Icons from 'lucide-react-native';
 import { ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, X } from 'lucide-react-native';
@@ -305,6 +305,15 @@ export const StackScreen: React.FC<{
 };
 
 /**
+ * Top safe area for modal screens, measured natively: 0 inside an iOS page sheet,
+ * the status-bar/notch height when the modal is presented full screen (Android,
+ * iPad form sheets, large text, …).
+ */
+export const ModalHeaderSafeArea: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <SafeAreaView edges={['top', 'left', 'right']}>{children}</SafeAreaView>
+);
+
+/**
  * Form presented modally (native iOS sheet via `presentation: 'modal'`):
  * "Vazgeç" | title | "Kaydet". Keyboard-aware scroll body.
  */
@@ -320,11 +329,10 @@ export const FormScreen: React.FC<{
 }> = ({ title, onCancel, onSubmit, submitLabel = 'Kaydet', submitDisabled, submitting, children, footer }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  // iOS modal sheets are already below the status bar; Android modals are full screen.
-  const top = Platform.OS === 'ios' ? 12 : insets.top + 8;
   return (
     <KeyboardAvoidingView style={tw`flex-1 bg-slate-100 dark:bg-slate-950`} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[tw`flex-row items-center px-4 pb-3`, { paddingTop: top }]}>
+      <ModalHeaderSafeArea>
+      <View style={tw`flex-row items-center px-4 pt-3 pb-3`}>
         <Pressable hitSlop={10} onPress={onCancel ?? (() => navigation.goBack())} style={tw`w-20`} accessibilityRole="button">
           <Text variant="callout" tone="brand">
             Vazgeç
@@ -347,6 +355,7 @@ export const FormScreen: React.FC<{
           ) : null}
         </View>
       </View>
+      </ModalHeaderSafeArea>
       <ScrollView
         style={tw`flex-1`}
         contentContainerStyle={[tw`px-4 pt-2 gap-5`, { paddingBottom: insets.bottom + 32 }]}
@@ -815,7 +824,13 @@ export function ChipRow<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`gap-2 px-1`} style={tw`-mx-1`}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={tw`gap-2 px-1`}
+      // Horizontal ScrollViews otherwise grow to fill a column's height.
+      style={[tw`-mx-1`, { flexGrow: 0 }]}
+    >
       {options.map((opt) => {
         const active = opt.value === value;
         const Icon = opt.icon;

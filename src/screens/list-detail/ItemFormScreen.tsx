@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { FileQuestion, Minus, Plus, Trash2 } from 'lucide-react-native';
 
 import {
   Btn,
   Button,
+  Card,
   ChipRow,
   DateField,
   EmptyState,
   FieldLabel,
   FormScreen,
+  IconTile,
+  Input,
+  palette,
   Segmented,
-  SelectField,
   Text,
   TextField,
   confirmAction,
   showToast,
+  UserAvatar,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { tw } from '../../lib/tw';
@@ -173,49 +177,73 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
       />
 
       {isShopping ? (
-        <>
-          <FieldLabel label="Miktar">
-            <View style={tw`flex-row items-center gap-3`}>
+        <Card className="gap-4">
+          <View style={tw`flex-row items-center justify-between`}>
+            <Text variant="body" weight="semibold">
+              Miktar
+            </Text>
+            <View style={tw`flex-row items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1`}>
               <Btn
                 onPress={() => setQuantity((q) => Math.max(step, +(q - step).toFixed(2)))}
                 disabled={quantity <= step}
                 accessibilityLabel="Azalt"
-                className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 items-center justify-center"
+                className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 items-center justify-center"
               >
-                <Minus size={22} color="#64748b" />
+                <Minus size={20} color="#64748b" />
               </Btn>
-              <View style={tw`flex-1 items-center`}>
-                <Text variant="title2">{`${quantity.toLocaleString('tr-TR')} ${unit}`}</Text>
-              </View>
+              <Text variant="headline" className="min-w-[72px] text-center">{`${quantity.toLocaleString('tr-TR')} ${unit}`}</Text>
               <Btn
                 onPress={() => setQuantity((q) => +(q + step).toFixed(2))}
                 accessibilityLabel="Artır"
-                className="w-12 h-12 rounded-2xl bg-emerald-600 items-center justify-center"
+                className="w-10 h-10 rounded-full bg-emerald-600 items-center justify-center"
               >
-                <Plus size={22} color="#fff" />
+                <Plus size={20} color="#fff" />
               </Btn>
             </View>
-          </FieldLabel>
-          <FieldLabel label="Birim">
-            <ChipRow
-              options={UNITS.map((u) => ({ value: u, label: u }))}
-              value={unit}
-              onChange={(u) => {
-                setUnit(u);
-                const s = stepFor(u);
-                setQuantity((q) => (q < s || (s >= 1 && q % 1 !== 0) ? s : q));
-              }}
-            />
-          </FieldLabel>
-          <TextField
-            label="Birim fiyat (₺)"
-            value={price}
-            onChangeText={(t) => setPrice(t.replace(/[^\d.,]/g, ''))}
-            placeholder="0"
-            keyboardType="decimal-pad"
-            hint={lineTotal > 0 ? `Toplam ${formatMoney(lineTotal)}` : 'İsteğe bağlı — sepet toplamında kullanılır.'}
+          </View>
+          <ChipRow
+            options={UNITS.map((u) => ({ value: u, label: u }))}
+            value={unit}
+            onChange={(u) => {
+              setUnit(u);
+              const s2 = stepFor(u);
+              setQuantity((q) => (q < s2 || (s2 >= 1 && q % 1 !== 0) ? s2 : q));
+            }}
           />
-        </>
+          <View style={tw`h-px bg-slate-100 dark:bg-slate-800`} />
+          <View style={tw`flex-row items-center gap-3`}>
+            <Text variant="body" weight="semibold" className="flex-1">
+              Birim fiyat
+            </Text>
+            <View style={tw`flex-row items-center h-11 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 min-w-[120px]`}>
+              <Text variant="body" tone="muted">
+                ₺
+              </Text>
+              <Input
+                value={price}
+                onChangeText={(t) => setPrice(t.replace(/[^\d.,]/g, ''))}
+                placeholder="0"
+                keyboardType="decimal-pad"
+                accessibilityLabel="Birim fiyat"
+                className="flex-1 text-[17px] font-semibold text-right ml-1"
+              />
+            </View>
+          </View>
+          {lineTotal > 0 ? (
+            <View style={tw`flex-row justify-between`}>
+              <Text variant="subhead" tone="muted">
+                Satır toplamı
+              </Text>
+              <Text variant="subhead" weight="bold" tone="brand">
+                {formatMoney(lineTotal)}
+              </Text>
+            </View>
+          ) : (
+            <Text variant="caption" tone="muted">
+              Fiyat isteğe bağlı — sepet toplamında kullanılır.
+            </Text>
+          )}
+        </Card>
       ) : null}
 
       {isTodo ? (
@@ -231,22 +259,60 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
       ) : null}
 
       {categories.length ? (
-        <SelectField
-          label="Kategori"
-          value={categoryId}
-          onChange={setCategoryId}
-          options={categories.map((c) => ({ value: c.id, label: c.name }))}
-          placeholder="Kategori seçin"
-        />
+        <FieldLabel label="Kategori">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={tw`gap-2`}>
+            {categories.map((c) => {
+              const active = c.id === categoryId;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => setCategoryId(c.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    tw`flex-row items-center gap-2 h-11 pl-1.5 pr-3.5 rounded-full border`,
+                    active
+                      ? { backgroundColor: `${c.color}22`, borderColor: c.color }
+                      : tw`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800`,
+                  ]}
+                >
+                  <IconTile icon={c.icon} color={c.color} size="sm" />
+                  <Text variant="subhead" weight={active ? 'bold' : 'medium'} numberOfLines={1}>
+                    {c.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </FieldLabel>
       ) : null}
 
-      <SelectField
-        label="Atanan kişi"
-        value={assignedTo}
-        onChange={setAssignedTo}
-        options={[{ value: '', label: 'Atanmamış' }, ...people.map((u) => ({ value: u.id, label: /^(https?:|data:|\/)/.test(u.avatar || '') ? u.name : `${u.avatar} ${u.name}` }))]}
-        placeholder="Atanmamış"
-      />
+      {people.length > 1 ? (
+        <FieldLabel label="Kim alacak / yapacak?">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={tw`gap-2`}>
+            {[{ id: '', name: 'Herkes', avatar: '👥', color: palette.slate500 }, ...people].map((u) => {
+              const active = (assignedTo || '') === u.id;
+              return (
+                <Pressable
+                  key={u.id || 'none'}
+                  onPress={() => setAssignedTo(u.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={tw.style(
+                    'flex-row items-center gap-2 h-11 pl-1.5 pr-3.5 rounded-full border',
+                    active ? 'bg-emerald-50 dark:bg-emerald-950 border-emerald-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
+                  )}
+                >
+                  <UserAvatar avatar={u.avatar} name={u.name} color={u.color} size="sm" />
+                  <Text variant="subhead" weight={active ? 'bold' : 'medium'}>
+                    {u.name.split(' ')[0]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </FieldLabel>
+      ) : null}
 
       <TextField label="Not" value={content} onChangeText={setContent} placeholder="İsteğe bağlı" multiline />
     </FormScreen>

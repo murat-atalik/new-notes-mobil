@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FileQuestion, Pin, PinOff } from 'lucide-react-native';
 
-import { ChipRow, EmptyState, IconButton, Text, confirmAction, palette, showToast } from '../../design';
+import { ChipRow, EmptyState, IconButton, ModalHeaderSafeArea, Text, confirmAction, palette, showToast } from '../../design';
 import { tw } from '../../lib/tw';
 import type { RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -29,11 +29,10 @@ export const NoteEditorScreen: React.FC<RootScreenProps<'NoteEditor'>> = ({ navi
   const [isPinned, setPinned] = useState(initial.isPinned);
   const [categoryId, setCategoryId] = useState(initial.categoryId);
 
-  const top = Platform.OS === 'ios' ? 12 : insets.top + 8;
-
   if (!list || (itemId && !note)) {
     return (
-      <View style={[tw`flex-1 bg-slate-100 dark:bg-slate-950`, { paddingTop: top }]}>
+      <View style={tw`flex-1 bg-slate-100 dark:bg-slate-950`}>
+        <ModalHeaderSafeArea />
         <EmptyState
           icon={FileQuestion}
           title="Not bulunamadı"
@@ -78,7 +77,8 @@ export const NoteEditorScreen: React.FC<RootScreenProps<'NoteEditor'>> = ({ navi
 
   return (
     <KeyboardAvoidingView style={tw`flex-1 bg-white dark:bg-slate-950`} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[tw`flex-row items-center px-4 pb-2`, { paddingTop: top }]}>
+      <ModalHeaderSafeArea>
+      <View style={tw`flex-row items-center px-4 pt-3 pb-2`}>
         <Pressable hitSlop={10} onPress={cancel} style={tw`w-20`} accessibilityRole="button">
           <Text variant="callout" tone="brand">
             Vazgeç
@@ -101,8 +101,9 @@ export const NoteEditorScreen: React.FC<RootScreenProps<'NoteEditor'>> = ({ navi
           </Pressable>
         </View>
       </View>
+      </ModalHeaderSafeArea>
 
-      <View style={[tw`flex-1 px-5 gap-3`, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[tw`flex-1 px-5 pt-2 gap-3`, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TextInput
           value={title}
           onChangeText={setTitle}
@@ -111,7 +112,7 @@ export const NoteEditorScreen: React.FC<RootScreenProps<'NoteEditor'>> = ({ navi
           autoFocus={!note}
           returnKeyType="next"
           accessibilityLabel="Başlık"
-          style={tw`text-[19px] leading-[24px] font-bold text-slate-900 dark:text-white py-1`}
+          style={tw`text-[24px] leading-[30px] font-extrabold text-slate-900 dark:text-white py-1`}
         />
         {categories.length ? (
           <ChipRow
@@ -128,7 +129,8 @@ export const NoteEditorScreen: React.FC<RootScreenProps<'NoteEditor'>> = ({ navi
           multiline
           textAlignVertical="top"
           accessibilityLabel="Not içeriği"
-          style={tw`flex-1 text-[16px] leading-[24px] text-slate-900 dark:text-white`}
+          scrollEnabled
+          style={tw`flex-1 text-[17px] leading-[26px] text-slate-900 dark:text-white pt-0`}
         />
       </View>
     </KeyboardAvoidingView>

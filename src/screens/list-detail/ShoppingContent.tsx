@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { ChevronDown, ChevronRight, ShoppingBasket, ShoppingCart } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, ShoppingBag, ShoppingBasket, ShoppingCart } from 'lucide-react-native';
 
-import { Card, EmptyState, IconTile, ProgressRing, Stat, Text, palette } from '../../design';
+import { Button, Card, EmptyState, IconTile, ProgressRing, Stat, Text, palette } from '../../design';
 import { formatMoney } from '../../logic/format';
 import { listProgress, shoppingTotals } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
@@ -10,41 +10,57 @@ import { useAppNavigation } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import type { Category, ListItem } from '../../types';
 import { lineTotal, shoppingMeta } from './helpers';
-import { GroupHeader, RoundCheck, RowChevron, RowGroup } from './parts';
+import { GroupHeader, RoundCheck, RowGroup } from './parts';
 
+/**
+ * Reminders-style row: the leading circle toggles (large hit area), tapping the
+ * text opens the editor; long-press also edits.
+ */
 const ShoppingRow: React.FC<{ item: ListItem; onToggle: () => void; onEdit: () => void }> = ({ item, onToggle, onEdit }) => {
   const total = lineTotal(item);
+  const meta = shoppingMeta(item);
   return (
-    <Pressable
-      onPress={onToggle}
-      onLongPress={onEdit}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: item.isCompleted }}
-      accessibilityLabel={item.title}
-      style={({ pressed }) => [tw`flex-row items-center gap-3 pl-4 pr-3 min-h-[60px] py-2.5`, pressed ? tw`bg-slate-100 dark:bg-slate-800` : null]}
-    >
-      <RoundCheck checked={item.isCompleted} />
-      <View style={tw`flex-1 min-w-0`}>
-        <Text
-          variant="body"
-          tone={item.isCompleted ? 'faint' : 'default'}
-          weight="medium"
-          numberOfLines={2}
-          style={item.isCompleted ? { textDecorationLine: 'line-through' } : undefined}
-        >
-          {item.title}
-        </Text>
-        <Text variant="footnote" tone="muted" numberOfLines={1}>
-          {shoppingMeta(item)}
-        </Text>
-      </View>
-      {total > 0 ? (
-        <Text variant="callout" weight="semibold" tone={item.isCompleted ? 'faint' : 'default'}>
-          {formatMoney(total)}
-        </Text>
-      ) : null}
-      <RowChevron onPress={onEdit} />
-    </Pressable>
+    <View style={tw`flex-row items-center min-h-[58px]`}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: item.isCompleted }}
+        accessibilityLabel={`${item.title} ${item.isCompleted ? 'alındı' : 'alınmadı'}`}
+        hitSlop={4}
+        style={tw`pl-4 pr-3 self-stretch justify-center`}
+      >
+        <RoundCheck checked={item.isCompleted} />
+      </Pressable>
+      <Pressable
+        onPress={onEdit}
+        onLongPress={onEdit}
+        accessibilityRole="button"
+        accessibilityHint="Ürünü düzenle"
+        style={({ pressed }) => [tw`flex-1 flex-row items-center gap-3 pr-4 py-2.5 self-stretch`, pressed ? tw`opacity-60` : null]}
+      >
+        <View style={tw`flex-1 min-w-0`}>
+          <Text
+            variant="body"
+            tone={item.isCompleted ? 'faint' : 'default'}
+            weight="medium"
+            numberOfLines={2}
+            style={item.isCompleted ? { textDecorationLine: 'line-through' } : undefined}
+          >
+            {item.title}
+          </Text>
+          {meta ? (
+            <Text variant="footnote" tone="muted" numberOfLines={1}>
+              {meta}
+            </Text>
+          ) : null}
+        </View>
+        {total > 0 ? (
+          <Text variant="callout" weight="semibold" tone={item.isCompleted ? 'faint' : 'default'}>
+            {formatMoney(total)}
+          </Text>
+        ) : null}
+      </Pressable>
+    </View>
   );
 };
 
@@ -84,19 +100,31 @@ export const ShoppingContent: React.FC<{ listId: string; items: ListItem[]; onAd
 
   return (
     <>
-      <Card className="flex-row items-center gap-4">
-        <ProgressRing value={progress.percent} size={76} stroke={8}>
-          <Text variant="subhead" weight="bold">
-            {`%${progress.percent}`}
-          </Text>
-        </ProgressRing>
-        <View style={tw`flex-1 gap-2 min-w-0`}>
-          <Text variant="headline">{`${progress.done}/${progress.total} alındı`}</Text>
-          <View style={tw`flex-row gap-5`}>
-            <Stat label="Kalan" value={formatMoney(totals.pending)} />
-            <Stat label="Sepette" value={formatMoney(totals.checked)} tone="brand" />
+      <Card className="gap-4">
+        <View style={tw`flex-row items-center gap-4`}>
+          <ProgressRing value={progress.percent} size={68} stroke={7}>
+            <Text variant="footnote" weight="bold">
+              {`${progress.done}/${progress.total}`}
+            </Text>
+          </ProgressRing>
+          <View style={tw`flex-1 flex-row gap-4 min-w-0`}>
+            <View style={tw`flex-1`}>
+              <Stat label="Kalan" value={formatMoney(totals.pending)} caption={`${progress.pending} ürün`} />
+            </View>
+            <View style={tw`flex-1`}>
+              <Stat label="Sepette" value={formatMoney(totals.checked)} tone="brand" caption={`${progress.done} ürün`} />
+            </View>
           </View>
         </View>
+        {checked.length > 0 ? (
+          <Button
+            title={totals.checked > 0 ? `Alışverişi Tamamla · ${formatMoney(totals.checked)}` : 'Alışverişi Tamamla'}
+            icon={ShoppingBag}
+            onPress={() => navigation.navigate('Checkout', { listId })}
+            size="md"
+            fullWidth
+          />
+        ) : null}
       </Card>
 
       {groups.length === 0 ? (
