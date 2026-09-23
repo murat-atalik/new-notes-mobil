@@ -34,15 +34,17 @@ npm run lint
 npm run format:check
 ```
 
-Liste, madde ve kullanıcı verileri `new-notes-main` uygulamasının REST API'si
-üzerinden PostgreSQL veritabanından alınır. Mobil uygulama yalnızca son başarılı
-sunucu yanıtını önbellek olarak AsyncStorage'da tutar; AsyncStorage kaynak veri
-değildir.
+Liste, madde ve kullanıcı verileri `new-notes-main` uygulamasının DB erişimli
+route'ları üzerinden PostgreSQL veritabanından alınır. Mobil uygulama doğrudan
+PostgreSQL'e bağlanmaz; DB şifresi uygulama paketine gömülmez. Mobil uygulama
+yalnızca son başarılı sunucu yanıtını önbellek olarak AsyncStorage'da tutar;
+AsyncStorage kaynak veri değildir.
 
 Geliştirme sırasında `new-notes-main` uygulamasını `http://localhost:3000`
 adresinde çalıştırın. iOS Simulator varsayılan olarak bu adrese, Android
-emulator ise `http://10.0.2.2:3000` adresine bağlanır. API adresi
-[src/config/api.ts](./src/config/api.ts) içinden platforma göre değiştirilir.
+emulator ise `http://10.0.2.2:3000` adresine bağlanır. Deploy edilmiş bir
+backend kullanırken Metro'yu `MOBILE_API_URL=https://...` ile başlatın veya
+[src/config/api.ts](./src/config/api.ts) içindeki URL'yi değiştirin.
 
 Mobil uygulama şu endpoint sözleşmesini kullanır:
 
@@ -54,7 +56,7 @@ State yönetimi Redux Toolkit ile yapılır; ekranlar `src/screens/` altında,
 root navigation ise `App.tsx` içinde tutulur. API bağlantı hataları mock veriyle
 gizlenmez ve Jest senaryolarıyla doğrulanır.
 
-`new-notes-main` içindeki API şu an token tabanlı yetkilendirme sağlamadığı için
-bu entegrasyon mevcut geliştirme sözleşmesini kullanır; production'a çıkmadan
-önce backend'de gerçek oturum, parola hash'leme ve kullanıcı/family
-yetkilendirmesi eklenmelidir.
+`new-notes-main` API route'ları DB bağlantısı yoksa artık 503 döndürür; hiçbir
+endpoint mobil istemciye seed/mock veri dönmez. Production'a çıkmadan önce
+backend'de gerçek oturum, parola hash'leme ve kullanıcı/family yetkilendirmesi
+eklenmelidir.
