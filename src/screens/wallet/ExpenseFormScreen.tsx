@@ -18,7 +18,7 @@ import {
   type SelectOption,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
-import { CARD_TYPE_META, cardAvailable, useFinance } from '../../logic/selectors';
+import { CARD_TYPE_META, cardAvailable, resolveExpenseCard, useFinance } from '../../logic/selectors';
 import type { RootScreenProps } from '../../navigation/types';
 import { getCurrencySymbol } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
@@ -46,10 +46,13 @@ const isBalanceCard = (card: PaymentCard) => card.type !== 'CREDIT_CARD';
  */
 function rebookCardSpend(old: ExpenseLog, next: { amount: number; card?: PaymentCard; title: string; categoryName: string; note?: string }) {
   const store = useAppStore.getState();
-  const oldCard = old.cardId ? store.paymentCards.find((c) => c.id === old.cardId) : undefined;
+  // Also finds cards linked only by name (older shopping checkouts have no cardId).
+  const oldCard = resolveExpenseCard(old, store.paymentCards);
   if (oldCard) {
     store.updatePaymentCard(oldCard.id, {
-      transactions: (oldCard.transactions || []).filter((t) => t.relatedExpenseId !== old.id),
+      transactions: (oldCard.transactions || []).filter(
+        (t) => t.relatedExpenseId !== old.id && t.id !== `tx-sync-${old.id}`,
+      ),
       ...(isBalanceCard(oldCard)
         ? { balance: (oldCard.balance || 0) + old.amount }
         : { currentDebt: Math.max(0, (oldCard.currentDebt || 0) - old.amount) }),
@@ -82,7 +85,8 @@ export const ExpenseFormScreen: React.FC<RootScreenProps<'ExpenseForm'>> = ({ na
   const [date, setDate] = useState(() => (existing?.date || isoDate()).split('T')[0]);
   const [payment, setPayment] = useState(() => {
     if (existing) {
-      if (existing.cardId && cards.some((c) => c.id === existing.cardId)) return cardKey(existing.cardId);
+      const linked = resolveExpenseCard(existing, cards);
+      if (linked) return cardKey(linked.id);
       return existing.paymentMethod === CASH ? CASH : OTHER;
     }
     return routeCard ? cardKey(routeCard.id) : CASH;
@@ -128,7 +132,7 @@ export const ExpenseFormScreen: React.FC<RootScreenProps<'ExpenseForm'>> = ({ na
     const paymentMethod = selectedCard ? selectedCard.name : payment;
 
     if (existing) {
-      const cardChanged = (existing.cardId || undefined) !== selectedCard?.id;
+      const cardChanged = resolveExpenseCard(existing, cards)?.id !== selectedCard?.id;
       if (cardChanged || existing.amount !== value) {
         rebookCardSpend(existing, {
           amount: value,

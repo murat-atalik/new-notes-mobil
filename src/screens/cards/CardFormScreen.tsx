@@ -16,8 +16,8 @@ import {
   Text,
   TextField,
 } from '../../design';
-import { formatMoney, parseAmount } from '../../logic/format';
-import { CARD_TYPE_META } from '../../logic/selectors';
+import { formatMoney, isoDate, parseAmount } from '../../logic/format';
+import { CARD_TYPE_META, isCreditCard } from '../../logic/selectors';
 import { CUTOFF_PRESETS } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
@@ -102,8 +102,28 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
       isShared,
     };
     if (existing) {
-      updatePaymentCard(existing.id, fields);
-      showToast('Kart güncellendi');
+      // A manual balance/debt change is recorded as an adjustment transaction so the
+      // card history (and the web's debt recalculation from transactions) stays consistent.
+      const sameKind = isCreditCard(existing) === credit;
+      const before = credit ? existing.currentDebt || 0 : existing.balance || 0;
+      const after = credit ? fields.currentDebt : fields.balance;
+      const delta = Math.round((after - before) * 100) / 100;
+      const transactions = [...(existing.transactions || [])];
+      if (sameKind && delta !== 0) {
+        // Credit: more debt = SPEND, less debt = TOP_UP. Others: more balance = TOP_UP.
+        const increasesSpend = credit ? delta > 0 : delta < 0;
+        transactions.unshift({
+          id: `tx-adjust-${Date.now()}`,
+          cardId: existing.id,
+          amount: Math.abs(delta),
+          type: increasesSpend ? 'SPEND' : 'TOP_UP',
+          title: credit ? 'Borç düzeltmesi' : 'Bakiye düzeltmesi',
+          date: isoDate(),
+          note: 'Kart düzenlenirken elle güncellendi',
+        });
+      }
+      updatePaymentCard(existing.id, { ...fields, transactions });
+      showToast(sameKind && delta !== 0 ? 'Kart güncellendi · düzeltme işlemi eklendi' : 'Kart güncellendi');
     } else {
       addPaymentCard({
         ...fields,

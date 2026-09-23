@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { ArrowDownLeft, ArrowUpRight, CalendarClock, Minus, Pencil, Plus, Receipt, Trash2 } from 'lucide-react-native';
 
 import {
   Button,
   Card,
+  ChipRow,
   confirmAction,
   EmptyState,
   IconButton,
@@ -44,6 +45,7 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
   const card = useAppStore((s) => s.paymentCards.find((c) => c.id === cardId));
   const updatePaymentCard = useAppStore((s) => s.updatePaymentCard);
   const deletePaymentCard = useAppStore((s) => s.deletePaymentCard);
+  const [cycleId, setCycleId] = useState<string>(card?.activeBillingCycle || 'CURRENT');
 
   if (!card) {
     return (
@@ -61,10 +63,21 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
   const debt = card.currentDebt || 0;
   const usage = limit ? (debt / limit) * 100 : 0;
 
-  const cycle = credit ? getCreditCardBillingCycles(card.cutoffDay, card.dueDay).find((c) => c.id === 'CURRENT') : undefined;
-  const cycleSpend = cycle
-    ? txs.filter((t) => t.type === 'SPEND' && isDateInCycle(t.date, cycle.startDate, cycle.endDate)).reduce((s, t) => s + (Number(t.amount) || 0), 0)
-    : 0;
+  // Oldest → newest for the chip row.
+  const cycles = credit ? [...getCreditCardBillingCycles(card.cutoffDay, card.dueDay)].reverse() : [];
+  const cycle = credit ? cycles.find((c) => c.id === cycleId) ?? cycles.find((c) => c.isCurrent) : undefined;
+  const cycleTxs = cycle ? txs.filter((t) => isDateInCycle(t.date, cycle.startDate, cycle.endDate)) : txs;
+  const cycleSum = (type: CardTransaction['type']) =>
+    cycleTxs.filter((t) => t.type === type).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const cycleSpend = cycleSum('SPEND');
+  const cyclePaid = cycleSum('TOP_UP');
+  const listedTxs = credit && cycle ? cycleTxs : txs;
+
+  const selectCycle = (id: string) => {
+    setCycleId(id);
+    // Same field the web uses to remember the selected statement period.
+    updatePaymentCard(card.id, { activeBillingCycle: id });
+  };
 
   const onDelete = () =>
     confirmAction({
@@ -132,7 +145,20 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
       ) : null}
 
       {credit ? (
-        <ListGroup header="Ekstre" footer={cycle ? `Dönem: ${cycle.shortLabel}` : undefined}>
+        <Section title="Ekstre dönemi">
+          <ChipRow
+            options={cycles.map((c) => ({
+              value: c.id,
+              label: c.id === 'CURRENT' ? `Güncel · ${c.shortLabel}` : c.id === 'NEXT_1' ? `Gelecek · ${c.shortLabel}` : c.shortLabel,
+            }))}
+            value={cycle?.id ?? 'CURRENT'}
+            onChange={selectCycle}
+          />
+        </Section>
+      ) : null}
+
+      {credit ? (
+        <ListGroup header="Ekstre" footer={cycle ? `${cycle.label} · ${cycle.dueDateStr ?? ''}` : undefined}>
           <Row
             icon={CalendarClock}
             iconColor={palette.info}
@@ -148,7 +174,14 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
             value={card.dueDay ? daysLeftLabel(daysUntilDayOfMonth(card.dueDay)) : undefined}
             valueTone={card.dueDay && daysUntilDayOfMonth(card.dueDay) <= 3 ? 'danger' : 'muted'}
           />
-          <Row icon={Receipt} iconColor={palette.warning} title="Bu dönem harcama" value={formatMoney(cycleSpend)} valueTone="default" />
+          <Row
+            icon={Receipt}
+            iconColor={palette.warning}
+            title={cycle?.isCurrent ? 'Bu dönem harcama' : 'Dönem harcaması'}
+            value={formatMoney(cycleSpend)}
+            valueTone="default"
+          />
+          <Row icon={ArrowDownLeft} iconColor={palette.brand} title="Dönem ödemesi" value={formatMoney(cyclePaid)} valueTone="success" />
         </ListGroup>
       ) : null}
 
@@ -159,19 +192,19 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
         </ListGroup>
       ) : null}
 
-      <Section title="İşlemler">
-        {txs.length === 0 ? (
+      <Section title={credit && cycle ? `İşlemler · ${cycle.shortLabel}` : 'İşlemler'}>
+        {listedTxs.length === 0 ? (
           <Card>
             <EmptyState
               icon={Receipt}
-              title="Henüz işlem yok"
+              title={credit && cycle && txs.length > 0 ? 'Bu dönemde işlem yok' : 'Henüz işlem yok'}
               message="Bu karttan yaptığın harcamalar ve yüklemeler burada görünür."
               action={{ label: 'Harcama ekle', icon: Minus, onPress: () => navigation.navigate('CardTransaction', { cardId, mode: 'SPEND' }) }}
             />
           </Card>
         ) : (
           <View style={tw`gap-4`}>
-            {groupTransactions(txs).map((group) => (
+            {groupTransactions(listedTxs).map((group) => (
               <ListGroup key={group.day} header={formatDay(group.day)}>
                 {group.items.map((t) => {
                   const spend = t.type === 'SPEND';

@@ -43,3 +43,18 @@ describe('selectors', () => {
     expect(result).toMatchObject({ liquid: 1000, creditDebt: 300, savingsTotal: 200, total: 900 });
   });
 });
+
+describe('resolveExpenseCard', () => {
+  const { resolveExpenseCard } = jest.requireActual('../selectors') as typeof import('../selectors');
+  const cards = [
+    { id: 'c1', name: 'Garanti Bonus' },
+    { id: 'c2', name: 'Kredi Kartı' },
+  ] as PaymentCard[];
+  it('matches by id, then card name, then non-generic payment method', () => {
+    expect(resolveExpenseCard(exp({ cardId: 'c1' }), cards)?.id).toBe('c1');
+    expect(resolveExpenseCard(exp({ cardName: 'garanti bonus' }), cards)?.id).toBe('c1');
+    expect(resolveExpenseCard(exp({ paymentMethod: 'Garanti Bonus' }), cards)?.id).toBe('c1');
+    // Generic phrases never match a card, even if a card happens to share the name.
+    expect(resolveExpenseCard(exp({ paymentMethod: 'Kredi Kartı' }), cards)).toBeUndefined();
+  });
+});

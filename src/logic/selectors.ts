@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { convertCurrencyToTRY } from '../lib/currencyUnits';
 import {
+  canUserAccessList,
   getAccessibleCards,
   getAccessibleExpenses,
   getAccessibleLists,
@@ -66,6 +67,18 @@ export function filterByScope(lists: AppList[], scope: Scope, user: User): AppLi
 
 export function listsOfType(lists: AppList[], type: ListType) {
   return lists.filter((l) => l.type === type);
+}
+
+/**
+ * What the current user may do with a list's membership.
+ * `canLeave` only when leaving actually removes access (family-shared lists stay
+ * visible through the family rule, so leaving them would be a no-op).
+ */
+export function listMembership(list: AppList, user: User) {
+  const isOwner = list.ownerId === user.id;
+  const isMember = list.members.some((m) => m.userId === user.id);
+  const keepsAccess = canUserAccessList({ ...list, members: list.members.filter((m) => m.userId !== user.id) }, user);
+  return { isOwner, isMember, canLeave: !isOwner && isMember && !keepsAccess, viaFamily: !isOwner && keepsAccess };
 }
 
 export type TaskBucket = 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'NODATE' | 'DONE';
@@ -173,4 +186,28 @@ export const CARD_TYPE_META: Record<PaymentCard['type'], { label: string; icon: 
 export function cardAvailable(card: PaymentCard): number {
   if (isCreditCard(card)) return Math.max(0, (card.creditLimit || 0) - (card.currentDebt || 0));
   return card.balance || 0;
+}
+
+const GENERIC_PAYMENT_PHRASES = new Set([
+  'kredi kartı', 'kredi karti', 'kredi', 'kart', 'nakit', 'banka kartı', 'banka karti',
+  'havale', 'eft', 'otomatik ödeme', 'diğer', 'diger',
+]);
+
+/**
+ * The card an expense was paid with — same ownership rules as the store's
+ * `sanitizePaymentCards`: cardId, then exact card name, then a non-generic payment method.
+ */
+export function resolveExpenseCard(expense: ExpenseLog, cards: PaymentCard[]): PaymentCard | undefined {
+  if (expense.cardId) {
+    const byId = cards.find((c) => c.id === expense.cardId);
+    if (byId) return byId;
+  }
+  const byName = (name?: string) => {
+    const clean = name?.trim().toLowerCase();
+    return clean ? cards.find((c) => c.name.trim().toLowerCase() === clean) : undefined;
+  };
+  const named = byName(expense.cardName);
+  if (named) return named;
+  const pm = expense.paymentMethod?.trim().toLowerCase();
+  return pm && !GENERIC_PAYMENT_PHRASES.has(pm) ? byName(pm) : undefined;
 }

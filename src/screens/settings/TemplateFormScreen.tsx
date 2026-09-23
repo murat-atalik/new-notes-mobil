@@ -24,6 +24,7 @@ import type { ListType, TemplateItem } from '../../types';
 import { IconGrid } from './IconGrid';
 import { LIST_TYPE_OPTIONS } from './listTypes';
 import { TEMPLATE_ICONS, templateTileProps } from './templateIcon';
+import { TemplateItemSheet, templateItemSummary } from './TemplateItemSheet';
 
 const DEFAULT_ICON: Record<ListType, string> = { SHOPPING: 'ShoppingCart', TODO: 'CheckSquare', NOTE: 'StickyNote' };
 const ITEM_NOUN: Record<ListType, string> = { SHOPPING: 'ürün', TODO: 'görev', NOTE: 'not' };
@@ -43,6 +44,8 @@ export const TemplateFormScreen: React.FC<RootScreenProps<'TemplateForm'>> = ({ 
   const [items, setItems] = useState<TemplateItem[]>(existing?.items ?? []);
   const [draft, setDraft] = useState('');
   const draftRef = useRef<TextInputHandle>(null);
+  const [editing, setEditing] = useState<TemplateItem | null>(null);
+  const categories = useAppStore((s) => s.categories);
 
   const trimmed = title.trim();
   const isEdit = !!existing;
@@ -135,16 +138,32 @@ export const TemplateFormScreen: React.FC<RootScreenProps<'TemplateForm'>> = ({ 
         </Text>
         <View style={tw`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/70 dark:border-slate-800 overflow-hidden`}>
           {items.map((item, index) => (
-            <View
+            <Pressable
               key={item.id}
-              style={tw`flex-row items-center gap-3 pl-4 pr-2 min-h-[48px] border-b border-slate-100 dark:border-slate-800`}
+              onPress={() => setEditing(item)}
+              accessibilityRole="button"
+              accessibilityHint="Ayrıntıları düzenle"
+              style={({ pressed }) => [
+                tw`flex-row items-center gap-3 pl-4 pr-2 min-h-[52px] border-b border-slate-100 dark:border-slate-800`,
+                pressed ? tw`bg-slate-100 dark:bg-slate-800` : null,
+              ]}
             >
               <Text variant="footnote" tone="faint" weight="bold" className="w-5">
                 {String(index + 1)}
               </Text>
-              <Text variant="body" className="flex-1" numberOfLines={2}>
-                {item.title}
-              </Text>
+              <View style={tw`flex-1 py-2`}>
+                <Text variant="body" numberOfLines={2}>
+                  {item.title}
+                </Text>
+                {(() => {
+                  const summary = templateItemSummary(item, type, categories.find((c) => c.id === item.categoryId)?.name);
+                  return summary ? (
+                    <Text variant="footnote" tone="muted" numberOfLines={1}>
+                      {summary}
+                    </Text>
+                  ) : null;
+                })()}
+              </View>
               <Pressable
                 onPress={() => setItems((prev) => prev.filter((i) => i.id !== item.id))}
                 accessibilityRole="button"
@@ -154,7 +173,7 @@ export const TemplateFormScreen: React.FC<RootScreenProps<'TemplateForm'>> = ({ 
               >
                 <X {...ic('w-5 h-5 text-slate-400')} />
               </Pressable>
-            </View>
+            </Pressable>
           ))}
           <View style={tw`flex-row items-center gap-3 pl-4 pr-2 min-h-[52px]`}>
             <Plus size={20} color={palette.brand} strokeWidth={2.4} />
@@ -171,7 +190,7 @@ export const TemplateFormScreen: React.FC<RootScreenProps<'TemplateForm'>> = ({ 
           </View>
         </View>
         <Text variant="caption" tone="muted" className="px-1">
-          Yaz ve klavyeden "Bitti"ye bas; sıradaki için alan açık kalır.
+          Yaz ve klavyeden "Bitti"ye bas; sıradaki için alan açık kalır. Ayrıntılar için öğeye dokun.
         </Text>
       </View>
 
@@ -188,6 +207,13 @@ export const TemplateFormScreen: React.FC<RootScreenProps<'TemplateForm'>> = ({ 
         </Text>
         <ColorPicker colors={colors} value={color} onChange={setColor} />
       </View>
+
+      <TemplateItemSheet
+        item={editing}
+        type={type}
+        onClose={() => setEditing(null)}
+        onSave={(updated) => setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))}
+      />
 
       {isEdit ? <Button title="Şablonu Sil" variant="dangerTinted" onPress={remove} fullWidth className="mt-2" /> : null}
     </FormScreen>

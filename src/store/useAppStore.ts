@@ -276,6 +276,8 @@ interface AppState {
   joinListWithCode: (code: string) => Promise<{ success: boolean; message?: string; listId?: string }>;
   inviteUserToList: (listId: string, usernameOrEmail: string, role?: 'EDITOR' | 'OWNER') => Promise<{ success: boolean; message?: string; error?: string; bilingualError?: BilingualError }>;
   removeMemberFromList: (listId: string, userId: string) => void;
+  /** Current user leaves a list they do not own (sharing settings of the list stay unchanged). */
+  leaveList: (listId: string) => void;
 
   // Item Actions (REST CRUD: /api/items)
   addItem: (item: Omit<ListItem, 'id' | 'createdAt'>) => void;
@@ -1354,6 +1356,16 @@ export const useAppStore = create<AppState>((set, get) => {
       persist();
       const message = res.data.message || `Kullanıcı "${invitee.name}" başarıyla listeye eklendi.`;
       return { success: true, message };
+    },
+
+    leaveList: (listId) => {
+      const state = get();
+      const target = state.lists.find((l) => l.id === listId);
+      if (!target || target.ownerId === state.currentUser.id) return;
+      const members = target.members.filter((m) => m.userId !== state.currentUser.id);
+      set((s) => ({ lists: s.lists.map((l) => (l.id === listId ? { ...l, members } : l)) }));
+      persist();
+      apiCall('/api/lists', 'PUT', { id: listId, members });
     },
 
     removeMemberFromList: (listId, userId) => {

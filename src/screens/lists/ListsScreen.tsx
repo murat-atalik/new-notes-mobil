@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import { Copy, Pencil, Plus, Search, Share2, Ticket, Trash2, X } from 'lucide-react-native';
+import { Copy, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, X } from 'lucide-react-native';
 
 import {
   ChipRow,
@@ -15,8 +15,9 @@ import {
   showToast,
   Text,
   TextField,
+  type ActionSheetOption,
 } from '../../design';
-import { filterByScope, useMyLists, type Scope } from '../../logic/selectors';
+import { filterByScope, listMembership, useMyLists, type Scope } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
 import { useAppNavigation, type TabParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -44,6 +45,7 @@ export const ListsScreen: React.FC = () => {
   const syncWithServer = useAppStore((s) => s.syncWithServer);
   const duplicateList = useAppStore((s) => s.duplicateList);
   const deleteList = useAppStore((s) => s.deleteList);
+  const leaveList = useAppStore((s) => s.leaveList);
 
   const [type, setType] = useState<ListType>(paramType ?? 'SHOPPING');
   const [lastParam, setLastParam] = useState(paramType);
@@ -96,36 +98,54 @@ export const ListsScreen: React.FC = () => {
 
   const openCreate = () => navigation.navigate('ListForm', { type });
 
-  const openActions = (list: AppList) =>
-    showActionSheet({
-      title: list.title,
-      options: [
-        { label: 'Düzenle', icon: Pencil, onPress: () => navigation.navigate('ListForm', { listId: list.id }) },
-        { label: 'Paylaş & Davet', icon: Share2, onPress: () => navigation.navigate('ListShare', { listId: list.id }) },
-        {
-          label: 'Kopyala',
-          icon: Copy,
-          onPress: () => {
-            duplicateList(list.id);
-            showToast('Liste kopyalandı');
-          },
+  const openActions = (list: AppList) => {
+    const { isOwner, canLeave } = listMembership(list, currentUser);
+    const options: ActionSheetOption[] = [
+      { label: 'Düzenle', icon: Pencil, onPress: () => navigation.navigate('ListForm', { listId: list.id }) },
+      { label: 'Paylaş & Davet', icon: Share2, onPress: () => navigation.navigate('ListShare', { listId: list.id }) },
+      {
+        label: 'Kopyala',
+        icon: Copy,
+        onPress: () => {
+          duplicateList(list.id);
+          showToast('Liste kopyalandı');
         },
-        {
-          label: 'Sil',
-          icon: Trash2,
-          destructive: true,
-          onPress: () =>
-            confirmAction({
-              title: 'Liste silinsin mi?',
-              message: `"${list.title}" ve içindeki tüm öğeler kalıcı olarak silinecek.`,
-              onConfirm: () => {
-                deleteList(list.id);
-                showToast('Liste silindi');
-              },
-            }),
-        },
-      ],
-    });
+      },
+    ];
+    if (isOwner) {
+      options.push({
+        label: 'Sil',
+        icon: Trash2,
+        destructive: true,
+        onPress: () =>
+          confirmAction({
+            title: 'Liste silinsin mi?',
+            message: `"${list.title}" ve içindeki tüm öğeler kalıcı olarak silinecek.`,
+            onConfirm: () => {
+              deleteList(list.id);
+              showToast('Liste silindi');
+            },
+          }),
+      });
+    } else if (canLeave) {
+      options.push({
+        label: 'Listeden Ayrıl',
+        icon: LogOut,
+        destructive: true,
+        onPress: () =>
+          confirmAction({
+            title: 'Listeden ayrılınsın mı?',
+            message: `"${list.title}" listesine artık erişemeyeceksin. Tekrar katılmak için davet kodu gerekir.`,
+            confirmText: 'Ayrıl',
+            onConfirm: () => {
+              leaveList(list.id);
+              showToast('Listeden ayrıldın');
+            },
+          }),
+      });
+    }
+    showActionSheet({ title: list.title, options });
+  };
 
   const meta = LIST_TYPE_META[type];
   const filtering = query.trim().length > 0 || scope !== 'ALL';
