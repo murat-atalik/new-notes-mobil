@@ -2,6 +2,9 @@
 
 Akıllı Liste uygulamasının React Native CLI karşılığıdır. Expo kullanılmaz.
 
+Arayüz `new-notes-main` web uygulamasının telefon görünümüyle birebir aynıdır; her web bileşeninin
+`src/components/` altında aynı isimli bir karşılığı vardır. Port kuralları: [docs/web-port-guide.md](./docs/web-port-guide.md).
+
 ## React Native CLI kurulumu
 
 Bu proje Expo kullanmaz. Android ve iOS native klasörleri React Native CLI 0.87.1 template'i ile oluşturulmuştur. React Native 0.87.1 ile uyumlu React 19.2.3 kullanılır.
@@ -57,6 +60,8 @@ Mobil uygulama şu endpoint sözleşmesini kullanır:
 - `GET/POST /api/users` — giriş/kayıt
 - `GET/POST/PUT/DELETE /api/lists` — listeler
 - `GET/POST/PUT/DELETE /api/items` — normalize edilmiş liste maddeleri
+- `GET/POST/PUT/DELETE /api/expenses`, `/api/cards`, `/api/savings` — finans
+- `GET /api/initial-data`, `GET /api/exchange-rates` — ilk yükleme ve döviz kurları
 
 State yönetimi Redux Toolkit ile yapılır; ekranlar `src/screens/` altında,
 root navigation ise `App.tsx` içinde tutulur. API bağlantı hataları mock veriyle

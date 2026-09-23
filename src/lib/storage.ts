@@ -8,6 +8,7 @@ export const PERSISTED_KEYS = [
   'akilli_liste_app_state_v8_clean',
   'better_auth_session_user_v8_clean',
   'smart_family_list_theme',
+  'smart_family_active_hub',
 ];
 
 export async function preloadStorage(): Promise<void> {

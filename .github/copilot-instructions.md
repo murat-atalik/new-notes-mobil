@@ -4,13 +4,13 @@ These instructions are loaded by GitHub Copilot (Chat, Edits and the coding agen
 
 ## Overview
 
-**new-notes-mobil** ("Akıllı Liste") is the React Native CLI counterpart of the `new-notes-main` web app: family shopping lists, to-dos and notes, with finance / family / analytics / settings tabs. **Expo is not used.**
+**new-notes-mobil** ("Akıllı Liste") is the React Native CLI twin of the `new-notes-main` web app: family shopping lists, to-dos and notes, finance (cards, savings, expenses), family, analytics and settings. **Expo is not used.** The mobile UI must stay **1:1 identical to the web app's phone-width view** — every web component in `new-notes-main/src/components/X.tsx` has a twin at `src/components/X.tsx` with the same name, props, texts and logic. See [docs/web-port-guide.md](../docs/web-port-guide.md) — it overrides the style/strings rules below for ported components.
 
-- React Native **0.87.1**, React **19.2.3**, TypeScript **6.x** with `strict: true` (extends `@react-native/typescript-config`).
-- Persistence: `@react-native-async-storage/async-storage`, single key `smart-family-list-mobile-v1` storing `{ user, lists, dark }` as JSON.
-- No backend, no navigation library, no state library — navigation is tab/selection state inside `App`.
-- The app is Turkish-language; UI strings are Turkish.
-- Native iOS and Android projects are committed under `ios/` and `android/`; this is a bare React Native CLI app.
+- React Native **0.87.1**, React **19.2.3**, TypeScript **6.x** with `strict: true`.
+- State: the web's zustand store (`src/store/useAppStore.ts`), persisted through a synchronous `localStorage` facade over AsyncStorage (`src/lib/storage.ts`), talking to the `new-notes-main` API (`src/config/api.ts`).
+- Styling: `twrnc` Tailwind classes (`src/lib/tw.ts`) copied from the web; icons from `lucide-react-native`; gradients via `react-native-linear-gradient`; charts drawn with `react-native-svg`.
+- Navigation: react-navigation (native stack + bottom tabs with the custom `BottomNav`), wrapped by a Next-style `useRouter()/usePathname()` shim (`src/lib/router.ts`).
+- The app is Turkish-language.
 
 ## Working agreements (read first — these override defaults)
 
@@ -35,40 +35,22 @@ npm run format:check # Prettier
 
 The committed native folders were generated from the React Native 0.87.1 CLI template. The registered app name is `NewNotesMobile` ([app.json](../app.json)).
 
-## Architecture (current state)
+## Architecture
 
-The root [App.tsx](../App.tsx) currently composes the app while feature extraction proceeds incrementally under `src/`:
+| Part | Where | Mirrors web |
+| --- | --- | --- |
+| Types, seed data, pure libs | `src/types.ts`, `src/data/`, `src/lib/{currencyUnits,groupingUtils,permissions,validations}.ts` | copied verbatim from `new-notes-main/src` |
+| Store | `src/store/useAppStore.ts` | web store; hash routing removed, `fetch` prefixed with `API_BASE_URL`, `rehydrate()` after storage preload |
+| Storage | `src/lib/storage.ts` | `localStorage` API over AsyncStorage (`preloadStorage()` runs before first render) |
+| Styling | `src/lib/tw.ts` | Tailwind classes; web-only tokens are dropped by `clean()` |
+| Router | `src/lib/router.ts` | `next/navigation` `useRouter` / `usePathname` |
+| Native helpers | `src/lib/native.ts` | clipboard, share, vibrate |
+| Hooks | `src/hooks/` | `useTheme` (same API + `isDark`), stubs for speech/PWA/body-scroll |
+| UI primitives | `src/components/ui/` | `Text`, `Btn`, `Input`, `Select`, `DateInput`, `Overlay`, `Panel`, `Gradient`, `Grid`, `Progress` |
+| Components | `src/components/*.tsx` | one file per web component |
+| Root | `App.tsx` | web `app/*/page.tsx` routes + `AppShell` global modals |
 
-| Part       | Where                                                               | What it is                                                                                                                          |
-| ---------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Types      | [src/types/index.ts](../src/types/index.ts)                         | `ListType` (`SHOPPING` / `TODO` / `NOTE`), `Tab`, `Item`, `AppList`, `User`, `PersistedState`                                       |
-| Strings    | [src/strings/tr.ts](../src/strings/tr.ts)                           | `strings` — every user-facing text, including seed data and the placeholder tab content                                             |
-| Storage    | [src/services/storageService.ts](../src/services/storageService.ts) | `loadState()` / `saveState()` — the only AsyncStorage caller; validates the stored shape and returns `null` on missing/corrupt data |
-| Constants  | [src/constants/](../src/constants/)                                 | `colors`, `LIST_TYPES`, `typeEmoji`, and the seed data                                                                              |
-| Utils      | [src/utils/](../src/utils/)                                         | IDs, validation, filtering, completion statistics                                                                                   |
-| Hooks      | [src/hooks/](../src/hooks/)                                         | `useAppState` persistence ViewModel and `useLists` list intents                                                                     |
-| Components | [src/components/Button/](../src/components/Button/)                 | Shared, memoized button with variants                                                                                               |
-| Root       | `App.tsx`                                                           | Root composition and remaining screen wiring                                                                                        |
-| Native     | `android/`, `ios/`                                                  | React Native CLI native projects                                                                                                    |
-| Tooling    | `eslint.config.mjs`, `.prettierrc.json`, `tsconfig.json`            | ESLint, Prettier, and strict TypeScript enforcement                                                                                 |
-
-Data flow: `App` holds all state and passes values + callbacks down as props; child screens hold only view-local input state (`useState` for text fields, active tab, search).
-
-### Target structure (when the file is split)
-
-As features grow, move code out of `App.tsx` — opportunistically, when you touch that area, never as a big-bang rewrite, and only after the plan is approved:
-
-```
-src/
-  types/          # domain types (Item, AppList, User, ...)
-  constants/      # colors/theme tokens, storage keys, seed data
-  strings/        # tr.ts — every user-facing string
-  services/       # storageService.ts (the only AsyncStorage caller)
-  utils/          # pure helpers: uid, filtering, totals, validation
-  hooks/          # ViewModel hooks: useLists, useAuth, useSettings
-  components/     # shared UI (Button, ListCard, ...) — one folder each, with styles.ts
-  screens/        # AuthScreen, ListsScreen, DetailScreen, SettingsScreen, ...
-```
+When the web app changes, port the same change to the twin file here.
 
 ## Conventions
 

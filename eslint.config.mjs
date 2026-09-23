@@ -44,6 +44,10 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-unused-vars': 'off',
+      // TypeScript already checks identifiers (RN globals like fetch/setTimeout, jest globals).
+      'no-undef': 'off',
+      // RN <Text> renders quotes literally; HTML entity escaping does not apply.
+      'react/no-unescaped-entities': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react-hooks/exhaustive-deps': 'error',

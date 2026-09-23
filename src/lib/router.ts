@@ -8,12 +8,8 @@ import { create } from 'zustand';
 
 export type TabRouteName =
   | 'lists'
-  | 'shopping'
-  | 'todos'
-  | 'notes'
   | 'finance'
   | 'family'
-  | 'shared'
   | 'analytics'
   | 'settings'
   | 'categories'
@@ -30,12 +26,8 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const TAB_PATHS: Record<TabRouteName, string> = {
   lists: '/',
-  shopping: '/shopping',
-  todos: '/todos',
-  notes: '/notes',
   finance: '/finance',
   family: '/family',
-  shared: '/shared',
   analytics: '/analytics',
   settings: '/settings',
   categories: '/categories',
@@ -78,7 +70,8 @@ export function push(path: string) {
   const entry = (Object.entries(TAB_PATHS) as [TabRouteName, string][]).find(
     ([, tabPath]) => tabPath === clean,
   );
-  const screen: TabRouteName = clean === '/lists' ? 'lists' : entry ? entry[0] : 'lists';
+  const aliases: Record<string, TabRouteName> = { '/lists': 'lists', '/shared': 'family' };
+  const screen: TabRouteName = aliases[clean] ?? (entry ? entry[0] : 'lists');
   navigationRef.navigate('Tabs', { screen });
 }
 

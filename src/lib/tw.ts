@@ -50,9 +50,17 @@ const DROP_UTILITY =
 
 const DISPLAY = /^(inline|inline-flex|inline-block|block|grid)$/;
 
-const SHADOW_ALIASES: Record<string, string> = {
+const ALIASES: Record<string, string> = {
   'shadow-2xs': 'shadow-sm',
   'shadow-xs': 'shadow-sm',
+  // Mobile type scale: the web's desktop-dense sizes are bumped to stay readable
+  // on phones (iOS HIG: ≥11pt captions, 13pt+ secondary, 15pt+ body).
+  'text-[8px]': 'text-[10px]',
+  'text-[9px]': 'text-[10px]',
+  'text-[10px]': 'text-[11px]',
+  'text-[11px]': 'text-[12px]',
+  'text-xs': 'text-[13px]',
+  'text-sm': 'text-[15px]',
 };
 
 const cache = new Map<string, string>();
@@ -74,7 +82,7 @@ export function clean(classes: string): string {
       continue;
     }
     if (DROP_UTILITY.test(utility)) continue;
-    const aliased = SHADOW_ALIASES[utility];
+    const aliased = ALIASES[utility];
     out.push(aliased ? [...variants, aliased].join(':') : raw);
   }
   const result = out.join(' ');
