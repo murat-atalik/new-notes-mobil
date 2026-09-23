@@ -53,7 +53,7 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
     <>
       <View
         style={[
-          tw`absolute left-0 right-0 bottom-0 flex-row items-center px-2 pt-1.5 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800`,
+          tw`absolute left-0 right-0 bottom-0 flex-row items-center px-2 pt-1.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800`,
           { paddingBottom: Math.max(insets.bottom, 8) },
         ]}
       >

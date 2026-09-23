@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text as RNText,
   TextInput,
   View,
@@ -85,15 +86,29 @@ export const Gradient: React.FC<
     dir?: keyof typeof GRADIENT_DIRECTIONS;
     children?: React.ReactNode;
   }
-> = ({ colors, dir = 'br', className = '', style, children }) => (
-  <LinearGradient
-    colors={colors.map((c) => (c.startsWith('#') || c.startsWith('rgb') ? c : tw.color(c) ?? c))}
-    {...GRADIENT_DIRECTIONS[dir]}
-    style={[tw.style(className), style]}
-  >
-    {children}
-  </LinearGradient>
-);
+> = ({ colors, dir = 'br', className = '', style, children }) => {
+  // Layout lives on a plain View; the gradient is an absolutely positioned
+  // background (LinearGradient mis-lays out padded children on iOS).
+  const flat = StyleSheet.flatten([tw.style(className), style]) as ViewStyle;
+  const radius = {
+    borderRadius: flat.borderRadius,
+    borderTopLeftRadius: flat.borderTopLeftRadius,
+    borderTopRightRadius: flat.borderTopRightRadius,
+    borderBottomLeftRadius: flat.borderBottomLeftRadius,
+    borderBottomRightRadius: flat.borderBottomRightRadius,
+  };
+  return (
+    <View style={flat}>
+      <LinearGradient
+        colors={colors.map((c) => (c.startsWith('#') || c.startsWith('rgb') ? c : tw.color(c) ?? c))}
+        {...GRADIENT_DIRECTIONS[dir]}
+        style={[StyleSheet.absoluteFill, radius]}
+        pointerEvents="none"
+      />
+      {children}
+    </View>
+  );
+};
 
 /**
  * Modal wrapper for the web's `fixed inset-0 bg-black/60 ...` dialogs.

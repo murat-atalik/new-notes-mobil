@@ -9,6 +9,7 @@ import { tw } from '../../lib/tw';
 import { useAppNavigation, useTabNavigation } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import type { AppList, ListItem, User } from '../../types';
+import { expenseSubtitle, expenseTitle } from '../wallet/shared';
 
 const WEEKDAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
@@ -244,7 +245,7 @@ export const HomeScreen: React.FC = () => {
           >
             <Plus size={24} color={palette.brand} />
             <Text variant="subhead" tone="brand" weight="semibold">
-              + Yeni
+              Yeni Liste
             </Text>
           </Card>
         </ScrollView>
@@ -279,8 +280,8 @@ export const HomeScreen: React.FC = () => {
                 key={e.id}
                 icon={Receipt}
                 iconColor={palette.warning}
-                title={e.listTitle || e.note || e.categoryName || 'Harcama'}
-                subtitle={`${e.categoryName || 'Diğer'} · ${formatDay(e.date)}`}
+                title={expenseTitle(e)}
+                subtitle={expenseSubtitle(e)}
                 value={formatMoney(e.amount, e.currency || 'TRY')}
                 valueTone="default"
                 onPress={() => navigation.navigate('ExpenseDetail', { expenseId: e.id })}

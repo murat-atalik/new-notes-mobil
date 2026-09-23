@@ -12,7 +12,8 @@ import { useAppStore } from '../../store/useAppStore';
 function formatSynced(value: string | null): string {
   if (!value) return 'Henüz senkronize edilmedi';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Bilinmiyor';
+  // The store keeps a clock time ("23:15") for the latest successful sync.
+  if (Number.isNaN(date.getTime())) return `Son: Bugün ${value}`;
   const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
