@@ -16,6 +16,8 @@ android/.cxx/
 android/app/build/
 android/build/
 android/local.properties
+android/app/debug.keystore
+android/app/.!*!debug.keystore
 .hprof
 ios/Pods/
 ios/build/
