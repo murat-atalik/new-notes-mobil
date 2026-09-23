@@ -23,6 +23,7 @@ import {
 import { localStorage } from '../lib/storage';
 import { API_BASE_URL } from '../config/api';
 import * as mobileApi from '../services/mobileApi';
+import { authHeaders, notifyUnauthorized, onUnauthorized } from '../services/session';
 
 export const DEFAULT_STARTER_CARDS: PaymentCard[] = [
   {
@@ -188,12 +189,13 @@ async function apiCall(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELET
   try {
     const options: RequestInit = {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
     };
     if (body !== undefined) {
       options.body = JSON.stringify(body);
     }
     const res = await fetch(API_BASE_URL + endpoint, options);
+    if (res.status === 401) notifyUnauthorized();
     return await res.json().catch(() => ({}));
   } catch (err) {
     console.warn(`REST CRUD ${method} ${endpoint} warning:`, err);
@@ -594,6 +596,11 @@ export function sanitizePaymentCards(cards: PaymentCard[], expenses: ExpenseLog[
 const initialPersisted = getInitialState();
 
 export const useAppStore = create<AppState>((set, get) => {
+  // A 401 from any API call means the session is gone: return to the login screen.
+  onUnauthorized(() => {
+    if (get().isAuthenticated) get().logout();
+  });
+
   const persist = () => {
     try {
       const state = get();
@@ -626,7 +633,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   /** Loads the user's scoped data from the server and replaces local collections. */
   const applyBootstrap = async (): Promise<{ success: boolean; error?: string }> => {
-    const res = await mobileApi.bootstrap(get().currentUser);
+    const res = await mobileApi.bootstrap();
     if (!res.ok) return { success: false, error: res.error };
     const { user, users, lists, items, expenses, savingsGoals, paymentCards } = res.data;
     const activeUser = ensureUserFamily(user);
@@ -941,7 +948,7 @@ export const useAppStore = create<AppState>((set, get) => {
       if (user.familyCode && user.familyCode.toUpperCase() === cleanCode) {
         return { success: true, message: 'Zaten bu ailenin üyesisiniz!', familyName: user.familyName };
       }
-      const res = await mobileApi.joinFamily(user.id, cleanCode);
+      const res = await mobileApi.joinFamily(cleanCode);
       if (!res.ok) return { success: false, message: res.error };
       const updatedUser = ensureUserFamily({ ...user, ...res.data.user, id: user.id });
       set((s) => ({
@@ -1102,7 +1109,6 @@ export const useAppStore = create<AppState>((set, get) => {
         password: password || '',
         avatar: newUser.avatar,
         color: pickedColor,
-        newUser,
       });
       if (!res.ok) return { success: false, error: res.error };
       const user = ensureUserFamily(res.data);
@@ -1124,12 +1130,13 @@ export const useAppStore = create<AppState>((set, get) => {
       }
       const user = get().currentUser;
       if (!user || user.id === 'guest') return { success: false, error: 'Oturum açmış kullanıcı bulunamadı.' };
-      const res = await mobileApi.changePassword(user.id, oldPassword, newPassword);
+      const res = await mobileApi.changePassword(oldPassword, newPassword);
       if (!res.ok) return { success: false, error: res.error };
       return { success: true };
     },
 
     logout: () => {
+      mobileApi.logout();
       set({
         isAuthenticated: false,
         currentUser: DEFAULT_ANONYMOUS_USER,
@@ -1319,7 +1326,7 @@ export const useAppStore = create<AppState>((set, get) => {
       if (local && local.members.some((m) => m.userId === state.currentUser.id)) {
         return { success: true, message: 'Zaten bu listenin üyesisiniz!', listId: local.id };
       }
-      const res = await mobileApi.joinListByCode(state.currentUser.id, cleanCode);
+      const res = await mobileApi.joinListByCode(cleanCode);
       if (!res.ok) return { success: false, message: res.error };
       await get().syncWithServer(true);
       return { success: true, message: res.data.message, listId: res.data.list.id };
@@ -1345,10 +1352,6 @@ export const useAppStore = create<AppState>((set, get) => {
           : targetList.members.some((m) => m.userId === invitee.id)
             ? targetList.members
             : [...targetList.members, { userId: invitee.id, role, joinedAt: new Date().toISOString() }];
-      if (!serverMembers) {
-        // Legacy backend: persist membership through the generic lists route.
-        apiCall('/api/lists', 'PUT', { id: listId, isShared: true, members });
-      }
       set((s) => ({
         lists: s.lists.map((l) => (l.id === listId ? { ...l, isShared: true, members } : l)),
         users: s.users.some((u) => u.id === invitee.id) ? s.users : [...s.users, invitee],

@@ -9,6 +9,7 @@ export const PERSISTED_KEYS = [
   'better_auth_session_user_v8_clean',
   'smart_family_list_theme',
   'smart_family_active_hub',
+  'sfl_mobile_session_token',
 ];
 
 export async function preloadStorage(): Promise<void> {
