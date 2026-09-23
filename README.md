@@ -43,8 +43,11 @@ AsyncStorage kaynak veri değildir.
 Geliştirme sırasında `new-notes-main` uygulamasını `http://localhost:3000`
 adresinde çalıştırın. iOS Simulator varsayılan olarak bu adrese, Android
 emulator ise `http://10.0.2.2:3000` adresine bağlanır. Deploy edilmiş bir
-backend kullanırken Metro'yu `MOBILE_API_URL=https://...` ile başlatın veya
-[src/config/api.ts](./src/config/api.ts) içindeki URL'yi değiştirin.
+backend kullanırken [src/config/api.local.ts](./src/config/api.local.ts)
+içindeki `MOBILE_API_URL` değerini `https://...` olarak ayarlayın.
+Lokal URL için [src/config/api.local.ts](./src/config/api.local.ts) içindeki
+`MOBILE_API_URL` değerini `http://...:3000` olarak ayarlayın. Bu değer DB URL'si
+değildir; `new-notes-main` API sunucusunun adresidir.
 
 Mobil uygulama şu endpoint sözleşmesini kullanır:
 
