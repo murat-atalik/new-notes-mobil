@@ -48,6 +48,7 @@ export async function authenticate(
     const { password: _password, ...user } = existing;
     return user;
   }
+
   if (!name) throw new Error('Kullanıcı adı veya şifre hatalı');
 
   const response = await request<{ user: ApiUser }>('/api/users', {
@@ -63,6 +64,19 @@ export async function authenticate(
   });
   const { password: _password, ...user } = response.user;
   return user;
+}
+
+export async function fetchFamilyMembers(): Promise<User[]> {
+  const response = await request<{ data: { users: ApiUser[] } }>('/api/initial-data');
+  return response.data.users.map(({ password: _password, ...user }) => user);
+}
+
+export async function updateUser(user: User, updates: Partial<User>): Promise<User> {
+  await request('/api/users', {
+    method: 'PUT',
+    body: JSON.stringify({ id: user.id, ...updates }),
+  });
+  return { ...user, ...updates };
 }
 
 export async function fetchLists(): Promise<AppList[]> {

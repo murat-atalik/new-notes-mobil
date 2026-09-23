@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -21,7 +21,13 @@ import { colors } from './src/constants/colors';
 import { Button } from './src/components/Button';
 import { LIST_TYPES, typeEmoji, typeLabels } from './src/constants/listTypes';
 import { useAppState } from './src/hooks/useAppState';
-import { createList, deleteList, updateList as updateRemoteList } from './src/services/apiClient';
+import {
+  createList,
+  deleteList,
+  fetchFamilyMembers,
+  updateList as updateRemoteList,
+  updateUser,
+} from './src/services/apiClient';
 import { strings } from './src/strings/tr';
 import { uid } from './src/utils/id';
 import type { AppList, Item, ListType, Tab, User } from './src/types';
@@ -477,6 +483,214 @@ function SimpleScreen({ tab }: { tab: Exclude<Tab, 'lists' | 'settings'> }) {
   );
 }
 
+function FamilyScreen({ user, onUserChange }: { user: User; onUserChange: (user: User) => void }) {
+  const [members, setMembers] = useState<User[]>([]);
+  const [familyName, setFamilyName] = useState(user.familyName ?? `${user.name} Ailesi`);
+  const [familyCode, setFamilyCode] = useState('');
+  const [newFamilyName, setNewFamilyName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const activeFamilyId = user.familyId ?? `fam_${user.username || user.id}`;
+  const familyMembers = members.filter(
+    (member) => member.id === user.id || member.familyId === activeFamilyId,
+  );
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setMembers(await fetchFamilyMembers());
+    } catch (error) {
+      Alert.alert(
+        strings.common.error,
+        error instanceof Error ? error.message : strings.common.error,
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const saveFamilyName = async () => {
+    const nextName = familyName.trim();
+    if (!nextName) return;
+    try {
+      const nextUser = await updateUser(user, { familyName: nextName });
+      onUserChange(nextUser);
+      setEditingName(false);
+    } catch (error) {
+      Alert.alert(
+        strings.common.error,
+        error instanceof Error ? error.message : strings.common.error,
+      );
+    }
+  };
+
+  const createFamily = async () => {
+    const name = newFamilyName.trim() || `${user.name} Ailesi`;
+    const nextFamilyId = `fam_${user.id}_${Date.now()}`;
+    const nextCode = `${user.username.slice(0, 3).toUpperCase()}-${Date.now()
+      .toString()
+      .slice(-4)}`;
+    try {
+      const nextUser = await updateUser(user, {
+        familyId: nextFamilyId,
+        familyName: name,
+        familyCode: nextCode,
+        familyRole: 'HEAD',
+      });
+      onUserChange(nextUser);
+      setNewFamilyName('');
+      await refresh();
+    } catch (error) {
+      Alert.alert(
+        strings.common.error,
+        error instanceof Error ? error.message : strings.common.error,
+      );
+    }
+  };
+
+  const joinFamily = async () => {
+    const target = members.find(
+      (member) => member.familyCode?.toUpperCase() === familyCode.trim().toUpperCase(),
+    );
+    if (!target?.familyId) {
+      Alert.alert(strings.common.error, strings.family.noFamily);
+      return;
+    }
+    try {
+      const nextUser = await updateUser(user, {
+        familyId: target.familyId,
+        familyName: target.familyName,
+        familyCode: target.familyCode,
+        familyRole: 'MEMBER',
+      });
+      onUserChange(nextUser);
+      setFamilyCode('');
+      await refresh();
+    } catch (error) {
+      Alert.alert(
+        strings.common.error,
+        error instanceof Error ? error.message : strings.common.error,
+      );
+    }
+  };
+
+  const leaveFamily = () => {
+    Alert.alert(strings.family.leave, strings.family.noFamily, [
+      { text: strings.common.cancel, style: 'cancel' },
+      {
+        text: strings.family.leave,
+        style: 'destructive',
+        onPress: () => {
+          void updateUser(user, {
+            familyId: `fam_${user.id}_${Date.now()}`,
+            familyName: `${user.name} Ailesi`,
+            familyCode: undefined,
+            familyRole: 'HEAD',
+          }).then(onUserChange);
+        },
+      },
+    ]);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Text style={styles.pageTitle}>{strings.family.title}</Text>
+      <Text style={styles.pageLead}>{strings.family.lead}</Text>
+      <View style={styles.familyHero}>
+        <View style={styles.familyHeroTop}>
+          <Text style={styles.familyIcon}>⌂</Text>
+          <View style={styles.detailTitleWrap}>
+            {editingName ? (
+              <TextInput
+                value={familyName}
+                onChangeText={setFamilyName}
+                style={styles.familyNameInput}
+                autoFocus
+              />
+            ) : (
+              <Text style={styles.familyTitle}>{familyName}</Text>
+            )}
+            <Text style={styles.familySubtitle}>✨ Ortak aile yaşamı ve eşzamanlı listeler</Text>
+          </View>
+          <Button
+            title={editingName ? strings.family.save : strings.settings.edit}
+            small
+            onPress={() => {
+              if (editingName) void saveFamilyName();
+              else setEditingName(true);
+            }}
+          />
+        </View>
+        <Text style={styles.familyCodeLabel}>{strings.family.familyCode}</Text>
+        <Text style={styles.familyCodeValue}>{user.familyCode ?? '—'}</Text>
+        <Text style={styles.familyCodeLead}>{strings.family.familyCodeLead}</Text>
+        <View style={styles.familyActions}>
+          <Button
+            title={loading ? strings.family.refresh : strings.family.refresh}
+            small
+            onPress={() => void refresh()}
+          />
+          <Button
+            title={strings.family.newFamily}
+            variant="secondary"
+            small
+            onPress={() => void createFamily()}
+          />
+        </View>
+      </View>
+      <View style={styles.panel}>
+        <Text style={styles.sectionTitle}>
+          {strings.family.members} ({familyMembers.length})
+        </Text>
+        {familyMembers.map((member) => (
+          <View key={member.id} style={styles.memberRow}>
+            <Text style={styles.memberAvatar}>{member.avatar || '👤'}</Text>
+            <View style={styles.itemBody}>
+              <Text style={styles.cardTitle}>
+                {member.name} {member.id === user.id ? `(${strings.family.self})` : ''}
+              </Text>
+              <Text style={styles.cardDescription}>
+                @{member.username} ·{' '}
+                {member.familyRole === 'HEAD' ? strings.family.owner : strings.family.member}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={styles.panel}>
+        <Text style={styles.sectionTitle}>{strings.family.joinTitle}</Text>
+        <TextInput
+          placeholder={strings.family.joinPlaceholder}
+          value={familyCode}
+          onChangeText={setFamilyCode}
+          autoCapitalize="characters"
+          style={styles.input}
+        />
+        <Button title={strings.family.join} onPress={() => void joinFamily()} />
+        <View style={styles.gap} />
+        <TextInput
+          placeholder={strings.family.createPlaceholder}
+          value={newFamilyName}
+          onChangeText={setNewFamilyName}
+          style={styles.input}
+        />
+        <Button
+          title={strings.family.create}
+          variant="secondary"
+          onPress={() => void createFamily()}
+        />
+        <View style={styles.gap} />
+        <Button title={strings.family.leave} variant="danger" onPress={leaveFamily} />
+      </View>
+    </ScrollView>
+  );
+}
+
 function SettingsScreen({
   user,
   onLogout,
@@ -609,6 +823,7 @@ const navItems: [Tab, string, string][] = [
 export default function App() {
   const {
     user,
+    setUser,
     lists,
     setLists,
     dark,
@@ -721,6 +936,8 @@ export default function App() {
           setDark={setDark}
           onReset={reset}
         />
+      ) : tab === 'family' ? (
+        <FamilyScreen user={user} onUserChange={setUser} />
       ) : (
         <SimpleScreen tab={tab} />
       )}
@@ -1022,6 +1239,47 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: 14,
   },
+  familyHero: {
+    backgroundColor: '#172554',
+    borderRadius: 22,
+    padding: 18,
+    marginTop: 18,
+    marginBottom: 14,
+  },
+  familyHeroTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  familyIcon: { color: '#6ee7b7', fontSize: 35, marginRight: 12 },
+  familyTitle: { color: '#fff', fontSize: 19, fontWeight: '900' },
+  familySubtitle: { color: '#c7d2fe', fontSize: 11, marginTop: 4 },
+  familyNameInput: {
+    color: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#6ee7b7',
+    paddingVertical: 2,
+    fontWeight: '800',
+  },
+  familyCodeLabel: {
+    color: '#a5b4fc',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  familyCodeValue: {
+    color: '#6ee7b7',
+    fontSize: 23,
+    fontWeight: '900',
+    letterSpacing: 3,
+    marginTop: 4,
+  },
+  familyCodeLead: { color: '#cbd5e1', fontSize: 11, marginTop: 5 },
+  familyActions: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  memberAvatar: { fontSize: 28, marginRight: 12 },
   sectionTitle: {
     color: colors.ink,
     fontWeight: '800',

@@ -50,4 +50,5 @@ export type User = {
   familyRole?: string;
   createdAt?: string;
 };
+export type FamilyMember = User;
 export type PersistedState = { user: User; lists: AppList[]; dark: boolean };
