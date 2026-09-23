@@ -66,12 +66,12 @@ export async function authenticate(
 }
 
 export async function fetchLists(): Promise<AppList[]> {
-  const [listsResponse, itemsResponse] = await Promise.all([
-    request<{ lists: ApiList[] }>('/api/lists'),
-    request<{ items: ApiItem[] }>('/api/items'),
-  ]);
+  const response = await request<{
+    data: { lists: ApiList[]; items: ApiItem[] };
+  }>('/api/initial-data');
+  const { lists: serverLists, items: serverItems } = response.data;
   const itemsByList = new Map<string, Item[]>();
-  for (const item of itemsResponse.items) {
+  for (const item of serverItems) {
     const current = itemsByList.get(item.listId ?? '') ?? [];
     current.push({
       ...item,
@@ -82,7 +82,7 @@ export async function fetchLists(): Promise<AppList[]> {
     });
     itemsByList.set(item.listId ?? '', current);
   }
-  return listsResponse.lists.map((list) => ({
+  return serverLists.map((list) => ({
     ...list,
     description: list.description ?? '',
     updatedAt: list.updatedAt ?? list.createdAt ?? new Date().toISOString(),

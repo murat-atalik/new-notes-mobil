@@ -14,13 +14,12 @@ export function useAppState() {
     loadState().then(async (saved) => {
       if (!isMounted || !saved) return;
       setUser(saved.user);
-      setLists(saved.lists);
       setDark(saved.dark);
       try {
         const remoteLists = await fetchLists();
         if (isMounted) setLists(remoteLists);
       } catch (error) {
-        if (__DEV__) console.warn('fetchLists failed; using cached lists', error);
+        if (__DEV__) console.warn('fetchLists failed; no server data rendered', error);
       }
     });
     return () => {

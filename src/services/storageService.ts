@@ -34,7 +34,7 @@ export async function loadState(): Promise<PersistedState | null> {
       !data.lists.every(isList)
     )
       return null;
-    return { user: data.user, lists: data.lists, dark: Boolean(data.dark) };
+    return { user: data.user, lists: [], dark: Boolean(data.dark) };
   } catch (error) {
     if (__DEV__) console.warn('loadState failed', error);
     return null;
