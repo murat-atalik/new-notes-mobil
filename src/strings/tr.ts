@@ -37,6 +37,7 @@ export const strings = {
     createPlaceholder: 'Liste adı',
     createSubmit: 'Oluştur',
     deleteButton: 'Sil',
+    open: 'Listeyi aç',
     emptyServer: 'Sunucuda kayıtlı liste bulunamadı.',
     emptySearch: 'Aramanızla eşleşen liste bulunamadı.',
     metricLists: 'Liste',

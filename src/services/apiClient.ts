@@ -218,3 +218,36 @@ export async function updateList(list: AppList): Promise<void> {
 export async function deleteList(id: string): Promise<void> {
   await request(`/api/lists?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export async function saveItem(item: Item): Promise<Item> {
+  const response = await request<{ item: Item }>('/api/items', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...item,
+      quantity: item.quantity ?? 1,
+      isPinned: item.isPinned ?? false,
+      priority: item.priority ?? 'MEDIUM',
+    }),
+  });
+  return response.item;
+}
+
+export async function updateItem(item: Item): Promise<void> {
+  await request('/api/items', {
+    method: 'PUT',
+    body: JSON.stringify({
+      id: item.id,
+      title: item.title,
+      isCompleted: item.isCompleted,
+      quantity: item.quantity ?? 1,
+      isPinned: item.isPinned ?? false,
+      priority: item.priority ?? 'MEDIUM',
+      content: item.content,
+      note: item.note,
+    }),
+  });
+}
+
+export async function deleteItem(id: string): Promise<void> {
+  await request(`/api/items?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+}

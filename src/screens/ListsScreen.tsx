@@ -2,6 +2,7 @@ import React from 'react';
 import { FlatList, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button } from '../components/Button';
+import { ListCard } from '../components/ListCard';
 
 import type { RootStackParamList } from '../../App';
 import type { AppList, ListType } from '../types';
@@ -41,30 +42,11 @@ export function ListsScreen({ lists, onDelete, onCreate }: Props) {
         </Text>
       }
       renderItem={({ item }) => (
-        <View style={styles.card}>
-          <View style={styles.cardHeading}>
-            <View style={styles.iconBadge}>
-              <Text style={styles.iconText}>
-                {item.type === 'SHOPPING' ? '🛒' : item.type === 'TODO' ? '✓' : '✎'}
-              </Text>
-            </View>
-            <View style={styles.cardHeadingText}>
-              <Button
-                variant="secondary"
-                title={item.title}
-                onPress={() => navigation.navigate('Detail', { list: item })}
-              />
-              <Text style={styles.subtitle}>{item.title}</Text>
-            </View>
-          </View>
-          <Text style={styles.lead}>{item.description}</Text>
-          <Button
-            title={strings.lists.deleteButton}
-            variant="danger"
-            small
-            onPress={() => void onDelete(item.id)}
-          />
-        </View>
+        <ListCard
+          list={item}
+          onOpen={() => navigation.navigate('Detail', { list: item })}
+          onDelete={() => void onDelete(item.id)}
+        />
       )}
       ListHeaderComponent={
         <View style={styles.headerStack}>

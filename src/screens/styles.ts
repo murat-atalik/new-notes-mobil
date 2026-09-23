@@ -82,4 +82,16 @@ export const styles = StyleSheet.create({
   iconText: { color: colors.primaryDark, fontSize: 21, fontWeight: '800' },
   cardHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardHeadingText: { flex: 1, gap: 4 },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  itemTitle: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '600' },
+  itemCompleted: { color: colors.muted, textDecorationLine: 'line-through' },
 });
