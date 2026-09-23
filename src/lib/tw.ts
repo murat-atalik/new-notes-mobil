@@ -53,14 +53,6 @@ const DISPLAY = /^(inline|inline-flex|inline-block|block|grid)$/;
 const ALIASES: Record<string, string> = {
   'shadow-2xs': 'shadow-sm',
   'shadow-xs': 'shadow-sm',
-  // Mobile type scale: the web's desktop-dense sizes are bumped to stay readable
-  // on phones (iOS HIG: ≥11pt captions, 13pt+ secondary, 15pt+ body).
-  'text-[8px]': 'text-[10px]',
-  'text-[9px]': 'text-[10px]',
-  'text-[10px]': 'text-[11px]',
-  'text-[11px]': 'text-[12px]',
-  'text-xs': 'text-[13px]',
-  'text-sm': 'text-[15px]',
 };
 
 const cache = new Map<string, string>();

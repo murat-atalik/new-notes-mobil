@@ -22,6 +22,7 @@ import {
 } from '../lib/validations';
 import { localStorage } from '../lib/storage';
 import { API_BASE_URL } from '../config/api';
+import * as mobileApi from '../services/mobileApi';
 
 export const DEFAULT_STARTER_CARDS: PaymentCard[] = [
   {
@@ -272,7 +273,7 @@ interface AppState {
   updateList: (id: string, updates: Partial<AppList>) => void;
   deleteList: (id: string) => void;
   duplicateList: (id: string) => string;
-  joinListWithCode: (code: string) => { success: boolean; message?: string; listId?: string };
+  joinListWithCode: (code: string) => Promise<{ success: boolean; message?: string; listId?: string }>;
   inviteUserToList: (listId: string, usernameOrEmail: string, role?: 'EDITOR' | 'OWNER') => Promise<{ success: boolean; message?: string; error?: string; bilingualError?: BilingualError }>;
   removeMemberFromList: (listId: string, userId: string) => void;
 
@@ -351,7 +352,7 @@ const getInitialState = () => {
         items: INITIAL_ITEMS,
         expenses: INITIAL_EXPENSES,
         savingsGoals: INITIAL_SAVINGS_GOALS,
-        paymentCards: DEFAULT_STARTER_CARDS,
+        paymentCards: [] as PaymentCard[],
         categories: INITIAL_CATEGORIES,
         templates: INITIAL_TEMPLATES,
         monthlyBudget: 15000,
@@ -373,7 +374,7 @@ const getInitialState = () => {
       const isAuth = !!sessionUser || (rawUsers.length > 0 && parsed.isAuthenticated);
 
       const loadedExpenses: ExpenseLog[] = parsed.expenses || INITIAL_EXPENSES;
-      const rawCards: PaymentCard[] = parsed.paymentCards && parsed.paymentCards.length > 0 ? parsed.paymentCards : DEFAULT_STARTER_CARDS;
+      const rawCards: PaymentCard[] = parsed.paymentCards || [];
       const sanitizedCards = sanitizePaymentCards(rawCards, loadedExpenses);
 
       return {
@@ -396,7 +397,7 @@ const getInitialState = () => {
   }
 
   const defaultExpenses = INITIAL_EXPENSES;
-  const defaultSanitizedCards = sanitizePaymentCards(DEFAULT_STARTER_CARDS, defaultExpenses);
+  const defaultSanitizedCards = sanitizePaymentCards([], defaultExpenses);
 
   return {
     lists: INITIAL_LISTS,
@@ -619,6 +620,26 @@ export const useAppStore = create<AppState>((set, get) => {
     } catch (e) {
       console.error('LocalStorage save error', e);
     }
+  };
+
+  /** Loads the user's scoped data from the server and replaces local collections. */
+  const applyBootstrap = async (): Promise<{ success: boolean; error?: string }> => {
+    const res = await mobileApi.bootstrap(get().currentUser);
+    if (!res.ok) return { success: false, error: res.error };
+    const { user, users, lists, items, expenses, savingsGoals, paymentCards } = res.data;
+    const activeUser = ensureUserFamily(user);
+    set(() => ({
+      lists,
+      items,
+      expenses,
+      savingsGoals,
+      paymentCards: sanitizePaymentCards(paymentCards, expenses),
+      users: users.map(ensureUserFamily),
+      currentUser: activeUser,
+      lastSyncedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+    }));
+    persist();
+    return { success: true };
   };
 
   const toggleComplete = (id: string) => {
@@ -859,91 +880,22 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     fetchInitialData: async (forceSync = false) => {
+      get().fetchDailyExchangeRates();
+      const user = get().currentUser;
+      if (!get().isAuthenticated || user.id === 'guest') return;
+      set({ isLoadingData: !forceSync, isSyncing: true });
       try {
-        // Döviz kurlarını veritabanından / günde bir kez çek
-        get().fetchDailyExchangeRates();
-
-        set({ isLoadingData: !forceSync, isSyncing: true });
-        const res = await fetch(API_BASE_URL + '/api/initial-data', { headers: { 'Cache-Control': 'no-cache' } });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            const { lists, items, expenses, savingsGoals, users, paymentCards } = json.data;
-            const currentUsers: User[] = (users && users.length > 0 ? users : get().users).map(ensureUserFamily);
-            
-            set((prev) => {
-              let activeUser = prev.currentUser.id !== 'guest' 
-                ? (currentUsers.find((u: User) => u.id === prev.currentUser.id) || prev.currentUser)
-                : (currentUsers[0] || prev.currentUser);
-              activeUser = ensureUserFamily(activeUser);
-
-              const mergedExpenses = expenses !== undefined && expenses.length > 0 ? expenses : prev.expenses;
-              const rawCards = paymentCards !== undefined && paymentCards.length > 0 ? paymentCards : prev.paymentCards;
-              const sanitizedCards = sanitizePaymentCards(rawCards, mergedExpenses);
-
-              return {
-                lists: lists !== undefined && lists.length > 0 ? lists : prev.lists,
-                items: items !== undefined && items.length > 0 ? items : prev.items,
-                expenses: mergedExpenses,
-                savingsGoals: savingsGoals !== undefined && savingsGoals.length > 0 ? savingsGoals : prev.savingsGoals,
-                paymentCards: sanitizedCards,
-                users: currentUsers,
-                currentUser: activeUser,
-                isAuthenticated: prev.isAuthenticated || (currentUsers.length > 0 && activeUser.id !== 'guest'),
-                isLoadingData: false,
-                isSyncing: false,
-                lastSyncedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-              };
-            });
-            persist();
-          }
-        }
-      } catch (err) {
-        console.warn('Initial data load error:', err);
+        await applyBootstrap();
       } finally {
         set({ isLoadingData: false, isSyncing: false });
       }
     },
 
     syncWithServer: async (silent = true) => {
+      if (!get().isAuthenticated || get().currentUser.id === 'guest') return { success: false, error: 'Oturum yok' };
+      if (!silent) set({ isSyncing: true });
       try {
-        if (!silent) set({ isSyncing: true });
-        const res = await fetch(API_BASE_URL + '/api/initial-data', { headers: { 'Cache-Control': 'no-cache' } });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            const { lists, items, expenses, savingsGoals, users, paymentCards } = json.data;
-            const currentUsers: User[] = (users && users.length > 0 ? users : get().users).map(ensureUserFamily);
-
-            set((prev) => {
-              let activeUser = prev.currentUser.id !== 'guest' 
-                ? (currentUsers.find((u: User) => u.id === prev.currentUser.id) || prev.currentUser)
-                : (currentUsers[0] || prev.currentUser);
-              activeUser = ensureUserFamily(activeUser);
-
-              const mergedExpenses = expenses !== undefined ? expenses : prev.expenses;
-              const rawCards = paymentCards !== undefined && paymentCards.length > 0 ? paymentCards : prev.paymentCards;
-              const sanitizedCards = sanitizePaymentCards(rawCards, mergedExpenses);
-
-              return {
-                lists: lists !== undefined ? lists : prev.lists,
-                items: items !== undefined ? items : prev.items,
-                expenses: mergedExpenses,
-                savingsGoals: savingsGoals !== undefined ? savingsGoals : prev.savingsGoals,
-                paymentCards: sanitizedCards,
-                users: currentUsers,
-                currentUser: activeUser,
-                isSyncing: false,
-                lastSyncedAt: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-              };
-            });
-            persist();
-            return { success: true };
-          }
-        }
-        return { success: false, error: 'Sunucu yanıt vermedi' };
-      } catch (err: any) {
-        return { success: false, error: err.message };
+        return await applyBootstrap();
       } finally {
         set({ isSyncing: false });
       }
@@ -976,105 +928,27 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     joinFamilyByCode: async (familyCode: string) => {
-      const state = get();
-      const user = state.currentUser;
+      const user = get().currentUser;
       if (!user || user.id === 'guest') {
         return { success: false, message: 'Lütfen önce giriş yapın.' };
       }
-
       const cleanCode = familyCode.trim().toUpperCase().replace(/\s+/g, '');
       if (!cleanCode) {
         return { success: false, message: 'Lütfen geçerli bir Aile Kodu girin.' };
       }
-
       if (user.familyCode && user.familyCode.toUpperCase() === cleanCode) {
         return { success: true, message: 'Zaten bu ailenin üyesisiniz!', familyName: user.familyName };
       }
-
-      // Step 1: Find target user in memory
-      let targetUser = state.users.find(
-        (u) => u.familyCode && u.familyCode.toUpperCase() === cleanCode
-      );
-
-      // Step 2: If not in memory, query server users directly
-      if (!targetUser) {
-        try {
-          const res = await fetch(API_BASE_URL + '/api/users', { headers: { 'Cache-Control': 'no-cache' } });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.users && Array.isArray(data.users)) {
-              const freshUsers: User[] = data.users.map(ensureUserFamily);
-              targetUser = freshUsers.find(
-                (u) => u.familyCode && u.familyCode.toUpperCase() === cleanCode
-              );
-              if (targetUser) {
-                set({ users: freshUsers });
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('Could not query users during join:', err);
-        }
-      }
-
-      if (!targetUser) {
-        return {
-          success: false,
-          message: 'Bu Aile Koduna ait bir aile bulunamadı. Lütfen kodu kontrol edin.',
-        };
-      }
-
-      const targetFamilyId = targetUser.familyId || `fam_${targetUser.username || targetUser.id}`;
-      const targetFamilyName = targetUser.familyName || `${targetUser.name} Ailesi`;
-      const targetFamilyCode = targetUser.familyCode || cleanCode;
-
-      // 1. Optimistic Update: Link user to new family instantly
-      const updatedUser: User = {
-        ...user,
-        familyId: targetFamilyId,
-        familyName: targetFamilyName,
-        familyCode: targetFamilyCode,
-        familyRole: 'MEMBER',
-      };
-
-      const updatedUsers = get().users.map((u) => (u.id === user.id ? updatedUser : u));
-
-      // Optimistically associate all family lists in memory
-      const updatedLists = get().lists.map((l) => {
-        if (l.familyId === targetFamilyId && !l.members.some((m) => m.userId === user.id)) {
-          return {
-            ...l,
-            isShared: true,
-            members: [...l.members, { userId: user.id, role: 'EDITOR' as const, joinedAt: new Date().toISOString() }],
-          };
-        }
-        return l;
-      });
-
-      set({
+      const res = await mobileApi.joinFamily(user.id, cleanCode);
+      if (!res.ok) return { success: false, message: res.error };
+      const updatedUser = ensureUserFamily({ ...user, ...res.data.user, id: user.id });
+      set((s) => ({
         currentUser: updatedUser,
-        users: updatedUsers,
-        lists: updatedLists,
-      });
+        users: s.users.map((u) => (u.id === user.id ? updatedUser : u)),
+      }));
       persist();
-
-      // 2. Persist update to DB
-      await apiCall('/api/users', 'PUT', {
-        id: user.id,
-        familyId: targetFamilyId,
-        familyName: targetFamilyName,
-        familyCode: targetFamilyCode,
-        familyRole: 'MEMBER',
-      });
-
-      // 3. Complete Server Re-fetch to pull all fresh lists, items, and expenses
       await get().syncWithServer(false);
-
-      return {
-        success: true,
-        message: `"${targetFamilyName}" ailesine başarıyla katıldınız! Tüm aile listeleri ve verileri güncellendi.`,
-        familyName: targetFamilyName,
-      };
+      return { success: true, message: res.data.message, familyName: updatedUser.familyName };
     },
 
     leaveFamilyToPersonal: async () => {
@@ -1176,44 +1050,19 @@ export const useAppStore = create<AppState>((set, get) => {
     login: async ({ username, password, rememberMe }) => {
       const val = handleZodValidation(loginSchema, { username, password, rememberMe });
       if (!val.success && val.error) {
-        return {
-          success: false,
-          error: formatBilingualMessage(val.error),
-          bilingualError: val.error,
-        };
+        return { success: false, error: formatBilingualMessage(val.error), bilingualError: val.error };
       }
-
-      const state = get();
-      const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
-      const existingUser = state.users.find(
-        (u) =>
-          (u.username && u.username.toLowerCase() === cleanUsername) ||
-          (u.email && u.email.toLowerCase() === cleanUsername) ||
-          u.name.toLowerCase() === cleanUsername
-      );
-
-      if (!existingUser) {
-        const err: BilingualError = {
-          tr: 'Bu kullanıcı adına ait kayıtlı bir hesap bulunamadı. Lütfen önce kayıt olun.',
-          en: 'No registered account found with this username. Please register first.',
-        };
-        return { success: false, error: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      if (existingUser.password && password && existingUser.password !== password) {
-        const err: BilingualError = {
-          tr: 'Girdiğiniz şifre hatalı. Lütfen tekrar deneyin.',
-          en: 'Incorrect password. Please try again.',
-        };
-        return { success: false, error: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      set({
-        currentUser: existingUser,
+      const res = await mobileApi.login(username, password || '');
+      if (!res.ok) return { success: false, error: res.error };
+      const user = ensureUserFamily(res.data);
+      set((s) => ({
+        currentUser: user,
+        users: [user, ...s.users.filter((u) => u.id !== user.id)],
         isAuthenticated: true,
         authModalOpen: false,
-      });
+      }));
       persist();
+      get().fetchInitialData();
       return { success: true };
     },
 
@@ -1226,38 +1075,18 @@ export const useAppStore = create<AppState>((set, get) => {
         avatar: avatar || DEFAULT_AVATAR,
         color,
       });
-
       if (!val.success && val.error) {
-        return {
-          success: false,
-          error: formatBilingualMessage(val.error),
-          bilingualError: val.error,
-        };
+        return { success: false, error: formatBilingualMessage(val.error), bilingualError: val.error };
       }
-
-      const state = get();
       const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
       const trimmedName = name.trim();
-
-      const alreadyExists = state.users.some(
-        (u) => u.username?.toLowerCase() === cleanUsername
-      );
-      if (alreadyExists) {
-        const err: BilingualError = {
-          tr: 'Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.',
-          en: 'This username is already taken. Please choose another username.',
-        };
-        return { success: false, error: formatBilingualMessage(err), bilingualError: err };
-      }
-
       const randomColors = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4'];
       const pickedColor = color || randomColors[Math.floor(Math.random() * randomColors.length)];
-
       const newUser: User = ensureUserFamily({
         id: `user-${Date.now()}`,
         name: trimmedName,
         username: cleanUsername,
-        password: password || 'password123',
+        password: password || '',
         avatar: avatar || DEFAULT_AVATAR,
         color: pickedColor,
         createdAt: new Date().toISOString().split('T')[0],
@@ -1265,56 +1094,36 @@ export const useAppStore = create<AppState>((set, get) => {
         familyName: `${trimmedName} Ailesi`,
         familyRole: 'HEAD',
       });
-
+      const res = await mobileApi.register({
+        name: trimmedName,
+        username: cleanUsername,
+        password: password || '',
+        avatar: newUser.avatar,
+        color: pickedColor,
+        newUser,
+      });
+      if (!res.ok) return { success: false, error: res.error };
+      const user = ensureUserFamily(res.data);
       set((s) => ({
-        users: [...s.users, newUser],
-        currentUser: newUser,
+        users: [user, ...s.users.filter((u) => u.id !== user.id)],
+        currentUser: user,
         isAuthenticated: true,
         authModalOpen: false,
       }));
       persist();
-
-      // Standard CRUD REST: POST /api/users
-      apiCall('/api/users', 'POST', newUser);
-
+      get().fetchInitialData();
       return { success: true };
     },
 
     changePassword: async ({ oldPassword, newPassword, confirmPassword }) => {
-      const val = handleZodValidation(changePasswordSchema, {
-        oldPassword,
-        newPassword,
-        confirmPassword,
-      });
-
+      const val = handleZodValidation(changePasswordSchema, { oldPassword, newPassword, confirmPassword });
       if (!val.success && val.error) {
-        return {
-          success: false,
-          error: formatBilingualMessage(val.error),
-          bilingualError: val.error,
-        };
+        return { success: false, error: formatBilingualMessage(val.error), bilingualError: val.error };
       }
-
-      const state = get();
-      const user = state.currentUser;
-
-      if (!user) {
-        const err: BilingualError = {
-          tr: 'Oturum açmış kullanıcı bulunamadı.',
-          en: 'No active logged-in user found.',
-        };
-        return { success: false, error: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      if (user.password && user.password !== oldPassword) {
-        const err: BilingualError = {
-          tr: 'Mevcut (eski) şifreniz hatalı. Lütfen kontrol edip tekrar deneyin.',
-          en: 'Current password is incorrect. Please check and retry.',
-        };
-        return { success: false, error: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      state.updateUserProfile({ password: newPassword });
+      const user = get().currentUser;
+      if (!user || user.id === 'guest') return { success: false, error: 'Oturum açmış kullanıcı bulunamadı.' };
+      const res = await mobileApi.changePassword(user.id, oldPassword, newPassword);
+      if (!res.ok) return { success: false, error: res.error };
       return { success: true };
     },
 
@@ -1500,105 +1309,51 @@ export const useAppStore = create<AppState>((set, get) => {
       return newId;
     },
 
-    joinListWithCode: (code) => {
+    joinListWithCode: async (code) => {
       const state = get();
       const cleanCode = code.trim().toUpperCase();
-      const list = state.lists.find((l) => l.inviteCode.toUpperCase() === cleanCode);
-
-      if (!list) {
-        return { success: false, message: 'Geçersiz veya bulunamayan davet kodu.' };
+      if (!cleanCode) return { success: false, message: 'Lütfen davet kodunu girin.' };
+      const local = state.lists.find((l) => (l.inviteCode || '').toUpperCase() === cleanCode);
+      if (local && local.members.some((m) => m.userId === state.currentUser.id)) {
+        return { success: true, message: 'Zaten bu listenin üyesisiniz!', listId: local.id };
       }
-
-      const alreadyMember = list.members.some((m) => m.userId === state.currentUser.id);
-      if (alreadyMember) {
-        set({ selectedListId: list.id, activeTab: 'lists' });
-        return { success: true, message: 'Zaten bu listenin üyesisiniz!', listId: list.id };
-      }
-
-      const newMember: ListMember = {
-        userId: state.currentUser.id,
-        role: 'EDITOR',
-        joinedAt: new Date().toISOString(),
-      };
-
-      const updatedMembers = [...list.members, newMember];
-
-      set((s) => ({
-        lists: s.lists.map((l) =>
-          l.id === list.id ? { ...l, members: updatedMembers } : l
-        ),
-        selectedListId: list.id,
-        activeTab: 'lists',
-      }));
-      persist();
-
-      apiCall('/api/lists', 'PUT', { id: list.id, members: updatedMembers });
-
-      return { success: true, message: `"${list.title}" listesine başarıyla katıldınız!`, listId: list.id };
+      const res = await mobileApi.joinListByCode(state.currentUser.id, cleanCode);
+      if (!res.ok) return { success: false, message: res.error };
+      await get().syncWithServer(true);
+      return { success: true, message: res.data.message, listId: res.data.list.id };
     },
 
     inviteUserToList: async (listId, usernameOrEmail, role = 'EDITOR') => {
       const val = handleZodValidation(inviteUserSchema, { usernameOrEmail, role });
       if (!val.success && val.error) {
-        return {
-          success: false,
-          error: formatBilingualMessage(val.error),
-          message: formatBilingualMessage(val.error),
-          bilingualError: val.error,
-        };
+        const msg = formatBilingualMessage(val.error);
+        return { success: false, error: msg, message: msg, bilingualError: val.error };
       }
+      const targetList = get().lists.find((l) => l.id === listId);
+      if (!targetList) return { success: false, error: 'Liste bulunamadı.', message: 'Liste bulunamadı.' };
 
-      const state = get();
-      const cleanInput = usernameOrEmail.trim().toLowerCase().replace(/^@/, '');
-      const user = state.users.find(
-        (u) =>
-          (u.username && u.username.toLowerCase() === cleanInput) ||
-          (u.email && u.email.toLowerCase() === cleanInput)
-      );
+      const res = await mobileApi.inviteToList(listId, usernameOrEmail, role);
+      if (!res.ok) return { success: false, error: res.error, message: res.error };
 
-      if (!user) {
-        const err: BilingualError = {
-          tr: 'Bu kullanıcı adı veya e-posta ile kayıtlı bir aile üyesi bulunamadı.',
-          en: 'No registered family member found with this username or email.',
-        };
-        return { success: false, error: formatBilingualMessage(err), message: formatBilingualMessage(err), bilingualError: err };
+      const invitee = ensureUserFamily(res.data.user);
+      const serverMembers = res.data.list.members;
+      const members =
+        serverMembers && serverMembers.length > 0
+          ? serverMembers
+          : targetList.members.some((m) => m.userId === invitee.id)
+            ? targetList.members
+            : [...targetList.members, { userId: invitee.id, role, joinedAt: new Date().toISOString() }];
+      if (!serverMembers) {
+        // Legacy backend: persist membership through the generic lists route.
+        apiCall('/api/lists', 'PUT', { id: listId, isShared: true, members });
       }
-
-      const targetList = state.lists.find((l) => l.id === listId);
-      if (!targetList) {
-        const err: BilingualError = {
-          tr: 'Liste bulunamadı.',
-          en: 'List not found.',
-        };
-        return { success: false, error: formatBilingualMessage(err), message: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      if (targetList.members.some((m) => m.userId === user.id)) {
-        const err: BilingualError = {
-          tr: 'Bu kullanıcı zaten listenin üyesidir.',
-          en: 'This user is already a member of this list.',
-        };
-        return { success: false, error: formatBilingualMessage(err), message: formatBilingualMessage(err), bilingualError: err };
-      }
-
-      const newMember: ListMember = {
-        userId: user.id,
-        role,
-        joinedAt: new Date().toISOString(),
-      };
-
-      const updatedMembers = [...targetList.members, newMember];
-
       set((s) => ({
-        lists: s.lists.map((l) =>
-          l.id === listId ? { ...l, isShared: true, members: updatedMembers } : l
-        ),
+        lists: s.lists.map((l) => (l.id === listId ? { ...l, isShared: true, members } : l)),
+        users: s.users.some((u) => u.id === invitee.id) ? s.users : [...s.users, invitee],
       }));
       persist();
-
-      apiCall('/api/lists', 'PUT', { id: listId, isShared: true, members: updatedMembers });
-
-      return { success: true, message: `Kullanıcı "${user.name}" başarıyla listeye eklendi.` };
+      const message = res.data.message || `Kullanıcı "${invitee.name}" başarıyla listeye eklendi.`;
+      return { success: true, message };
     },
 
     removeMemberFromList: (listId, userId) => {

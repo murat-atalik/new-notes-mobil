@@ -1,231 +1,172 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StatusBar, View } from 'react-native';
-import { NavigationContainer, type RouteProp, useRoute } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, type NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { enableScreens } from 'react-native-screens';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ArrowLeft, Loader2, ShieldAlert } from 'lucide-react-native';
 
-import { AnalyticsView } from './src/components/AnalyticsView';
-import { AppShell } from './src/components/AppShell';
-import { AuthModal } from './src/components/AuthModal';
-import { BottomNav } from './src/components/BottomNav';
-import { CategoriesView } from './src/components/CategoriesView';
-import { ChangePasswordModal } from './src/components/ChangePasswordModal';
-import { CreateListModal } from './src/components/CreateListModal';
-import { FamilyView } from './src/components/FamilyView';
-import { FinanceView } from './src/components/FinanceView';
-import { InviteModal } from './src/components/InviteModal';
-import { ListsView } from './src/components/ListsView';
-import { NoteListView } from './src/components/NoteListView';
-import { SettingsView } from './src/components/SettingsView';
-import { ShoppingListView } from './src/components/ShoppingListView';
-import { TemplatesView } from './src/components/TemplatesView';
-import { TodoListView } from './src/components/TodoListView';
-import { Btn, Text, ToastHost } from './src/components/ui';
+import { ActionSheetHost, ToastHost } from './src/design';
 import { loadTheme, useTheme } from './src/hooks/useTheme';
-import { canUserAccessList } from './src/lib/permissions';
-import {
-  navigationRef,
-  syncPathname,
-  useRouter,
-  type RootStackParamList,
-  type TabParamList,
-} from './src/lib/router';
 import { preloadStorage } from './src/lib/storage';
-import { ic, tw } from './src/lib/tw';
+import { tw } from './src/lib/tw';
+import { TabBar } from './src/navigation/TabBar';
+import type { AuthStackParamList, RootStackParamList, TabParamList } from './src/navigation/types';
+import { LoginScreen } from './src/screens/auth/LoginScreen';
+import { RegisterScreen } from './src/screens/auth/RegisterScreen';
+import { WelcomeScreen } from './src/screens/auth/WelcomeScreen';
+import { CardDetailScreen } from './src/screens/cards/CardDetailScreen';
+import { CardFormScreen } from './src/screens/cards/CardFormScreen';
+import { CardsScreen } from './src/screens/cards/CardsScreen';
+import { CardTransactionScreen } from './src/screens/cards/CardTransactionScreen';
+import { FamilyEditScreen } from './src/screens/family/FamilyEditScreen';
+import { FamilyJoinScreen } from './src/screens/family/FamilyJoinScreen';
+import { FamilyScreen } from './src/screens/family/FamilyScreen';
+import { HomeScreen } from './src/screens/home/HomeScreen';
+import { CheckoutScreen } from './src/screens/list-detail/CheckoutScreen';
+import { ItemFormScreen } from './src/screens/list-detail/ItemFormScreen';
+import { ListDetailScreen } from './src/screens/list-detail/ListDetailScreen';
+import { NoteEditorScreen } from './src/screens/list-detail/NoteEditorScreen';
+import { JoinListScreen } from './src/screens/lists/JoinListScreen';
+import { ListFormScreen } from './src/screens/lists/ListFormScreen';
+import { ListShareScreen } from './src/screens/lists/ListShareScreen';
+import { ListsScreen } from './src/screens/lists/ListsScreen';
+import { AssetDetailScreen } from './src/screens/savings/AssetDetailScreen';
+import { AssetFormScreen } from './src/screens/savings/AssetFormScreen';
+import { AssetTransactionScreen } from './src/screens/savings/AssetTransactionScreen';
+import { SavingsScreen } from './src/screens/savings/SavingsScreen';
+import { CategoriesScreen } from './src/screens/settings/CategoriesScreen';
+import { CategoryFormScreen } from './src/screens/settings/CategoryFormScreen';
+import { ChangePasswordScreen } from './src/screens/settings/ChangePasswordScreen';
+import { ProfileScreen } from './src/screens/settings/ProfileScreen';
+import { SettingsScreen } from './src/screens/settings/SettingsScreen';
+import { TemplateFormScreen } from './src/screens/settings/TemplateFormScreen';
+import { TemplatesScreen } from './src/screens/settings/TemplatesScreen';
+import { BudgetScreen } from './src/screens/wallet/BudgetScreen';
+import { ExpenseDetailScreen } from './src/screens/wallet/ExpenseDetailScreen';
+import { ExpenseFormScreen } from './src/screens/wallet/ExpenseFormScreen';
+import { ExpensesScreen } from './src/screens/wallet/ExpensesScreen';
+import { ReportsScreen } from './src/screens/wallet/ReportsScreen';
+import { WalletScreen } from './src/screens/wallet/WalletScreen';
 import { useAppStore } from './src/store/useAppStore';
 
 enableScreens();
 
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<TabParamList>();
 
-// Each screen subscribes to the theme so the whole subtree re-renders with the
-// new twrnc color scheme when the user toggles light/dark.
+const modal: NativeStackNavigationOptions = { presentation: 'modal', gestureEnabled: true };
 
-function ListsScreen() {
-  useTheme();
-  const { setCreateListModalOpen, setInviteModalTargetList, setPwaInstallModalOpen } = useAppStore();
-  return (
-    <AppShell>
-      <ListsView
-        onOpenCreateModal={(type) => setCreateListModalOpen(true, type)}
-        onOpenInvite={(list) => setInviteModalTargetList(list)}
-        onOpenPwaModal={() => setPwaInstallModalOpen(true)}
-      />
-    </AppShell>
-  );
+// Screens subscribe to the theme through `withTheme`, so a light/dark switch
+// re-renders them with the new twrnc color scheme.
+function withTheme<P extends object>(Component: React.ComponentType<P>): React.FC<P> {
+  const Themed: React.FC<P> = (props) => {
+    useTheme();
+    return <Component {...props} />;
+  };
+  Themed.displayName = `Themed(${Component.displayName ?? Component.name})`;
+  return Themed;
 }
 
-function FinanceScreen() {
-  useTheme();
-  return (
-    <AppShell>
-      <FinanceView />
-    </AppShell>
-  );
-}
-
-function FamilyScreen() {
-  useTheme();
-  const { setCreateListModalOpen, setInviteModalTargetList } = useAppStore();
-  return (
-    <AppShell>
-      <FamilyView
-        onOpenCreateModal={() => setCreateListModalOpen(true)}
-        onOpenInvite={(list) => setInviteModalTargetList(list)}
-      />
-    </AppShell>
-  );
-}
-
-function AnalyticsScreen() {
-  useTheme();
-  return (
-    <AppShell>
-      <AnalyticsView />
-    </AppShell>
-  );
-}
-
-function SettingsScreen() {
-  useTheme();
-  return (
-    <AppShell>
-      <SettingsView />
-    </AppShell>
-  );
-}
-
-function CategoriesScreen() {
-  useTheme();
-  const router = useRouter();
-  return (
-    <AppShell>
-      <CategoriesView onBack={() => router.push('/settings')} />
-    </AppShell>
-  );
-}
-
-function TemplatesScreen() {
-  useTheme();
-  const router = useRouter();
-  return (
-    <AppShell>
-      <TemplatesView onBack={() => router.push('/settings')} />
-    </AppShell>
-  );
-}
-
-/** Web `app/list/[id]/page.tsx`. */
-function ListScreen() {
-  useTheme();
-  const router = useRouter();
-  const route = useRoute<RouteProp<RootStackParamList, 'List'>>();
-  const listId = route.params.id;
-  const { lists, currentUser, isLoadingData, setInviteModalTargetList } = useAppStore();
-
-  const list = lists.find((l) => l.id === listId);
-  const hasAccess = list ? canUserAccessList(list, currentUser) : false;
-
-  if (!list || !hasAccess) {
-    if (isLoadingData) {
-      return (
-        <View style={tw`flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center p-4`}>
-          <View style={tw`mb-3`}>
-            <Loader2 {...ic('w-8 h-8 text-emerald-600')} />
-          </View>
-          <Text className="text-sm font-semibold text-slate-600 dark:text-slate-400">Liste yükleniyor...</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={tw`flex-1 bg-slate-50 dark:bg-slate-950 items-center justify-center p-4`}>
-        <View
-          style={tw`w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 items-center justify-center mb-3`}
-        >
-          <ShieldAlert {...ic('w-6 h-6 text-rose-700 dark:text-rose-400')} />
-        </View>
-        <Text className="text-base font-bold text-slate-900 dark:text-white mb-1">
-          {list ? 'Erişim İzniniz Yok' : 'Liste Bulunamadı'}
-        </Text>
-        <Text className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-4 text-center">
-          {list
-            ? 'Bu liste başka bir aileye veya kişiye aittir. Yalnızca yetkili aile üyeleri bu listeyi görüntüleyebilir.'
-            : 'Bu liste silinmiş veya mevcut değil.'}
-        </Text>
-        <Btn
-          onPress={() => router.push('/')}
-          className="flex-row items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white shadow-sm"
-        >
-          <ArrowLeft {...ic('w-4 h-4 text-white dark:text-slate-900')} />
-          <Text className="text-xs font-bold text-white dark:text-slate-900">Listelerime Dön</Text>
-        </Btn>
-      </View>
-    );
-  }
-
-  const onBack = () => router.back();
-  const onOpenInvite = () => setInviteModalTargetList(list);
-
-  return (
-    <View style={tw`flex-1 bg-slate-50/70 dark:bg-slate-950`}>
-      {list.type === 'SHOPPING' && <ShoppingListView list={list} onBack={onBack} onOpenInvite={onOpenInvite} />}
-      {list.type === 'TODO' && <TodoListView list={list} onBack={onBack} onOpenInvite={onOpenInvite} />}
-      {list.type === 'NOTE' && <NoteListView list={list} onBack={onBack} onOpenInvite={onOpenInvite} />}
-    </View>
-  );
-}
+const T = {
+  Home: withTheme(HomeScreen),
+  Lists: withTheme(ListsScreen),
+  Wallet: withTheme(WalletScreen),
+  Family: withTheme(FamilyScreen),
+  Welcome: withTheme(WelcomeScreen),
+  Login: withTheme(LoginScreen),
+  Register: withTheme(RegisterScreen),
+  ListDetail: withTheme(ListDetailScreen),
+  ListForm: withTheme(ListFormScreen),
+  ListShare: withTheme(ListShareScreen),
+  JoinList: withTheme(JoinListScreen),
+  ItemForm: withTheme(ItemFormScreen),
+  NoteEditor: withTheme(NoteEditorScreen),
+  Checkout: withTheme(CheckoutScreen),
+  Expenses: withTheme(ExpensesScreen),
+  ExpenseDetail: withTheme(ExpenseDetailScreen),
+  ExpenseForm: withTheme(ExpenseFormScreen),
+  Budget: withTheme(BudgetScreen),
+  Reports: withTheme(ReportsScreen),
+  Cards: withTheme(CardsScreen),
+  CardDetail: withTheme(CardDetailScreen),
+  CardForm: withTheme(CardFormScreen),
+  CardTransaction: withTheme(CardTransactionScreen),
+  Savings: withTheme(SavingsScreen),
+  AssetDetail: withTheme(AssetDetailScreen),
+  AssetForm: withTheme(AssetFormScreen),
+  AssetTransaction: withTheme(AssetTransactionScreen),
+  FamilyJoin: withTheme(FamilyJoinScreen),
+  FamilyEdit: withTheme(FamilyEditScreen),
+  Settings: withTheme(SettingsScreen),
+  Profile: withTheme(ProfileScreen),
+  ChangePassword: withTheme(ChangePasswordScreen),
+  Categories: withTheme(CategoriesScreen),
+  CategoryForm: withTheme(CategoryFormScreen),
+  Templates: withTheme(TemplatesScreen),
+  TemplateForm: withTheme(TemplateFormScreen),
+};
 
 function MainTabs() {
   return (
-    <Tabs.Navigator
-      screenOptions={{ headerShown: false }}
-      tabBar={() => <ThemedBottomNav />}
-      backBehavior="history"
-    >
-      <Tabs.Screen name="lists" component={ListsScreen} />
-      <Tabs.Screen name="finance" component={FinanceScreen} />
-      <Tabs.Screen name="family" component={FamilyScreen} />
-      <Tabs.Screen name="analytics" component={AnalyticsScreen} />
-      <Tabs.Screen name="settings" component={SettingsScreen} />
-      <Tabs.Screen name="categories" component={CategoriesScreen} />
-      <Tabs.Screen name="templates" component={TemplatesScreen} />
+    <Tabs.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+      <Tabs.Screen name="Home" component={T.Home} />
+      <Tabs.Screen name="Lists" component={T.Lists} />
+      <Tabs.Screen name="Wallet" component={T.Wallet} />
+      <Tabs.Screen name="Family" component={T.Family} />
     </Tabs.Navigator>
   );
 }
 
-function ThemedBottomNav() {
-  useTheme();
-  return <BottomNav />;
+function AppStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={MainTabs} />
+
+      <Stack.Screen name="ListDetail" component={T.ListDetail} />
+      <Stack.Screen name="ListForm" component={T.ListForm} options={modal} />
+      <Stack.Screen name="ListShare" component={T.ListShare} options={modal} />
+      <Stack.Screen name="JoinList" component={T.JoinList} options={modal} />
+      <Stack.Screen name="ItemForm" component={T.ItemForm} options={modal} />
+      <Stack.Screen name="NoteEditor" component={T.NoteEditor} options={modal} />
+      <Stack.Screen name="Checkout" component={T.Checkout} options={modal} />
+
+      <Stack.Screen name="Expenses" component={T.Expenses} />
+      <Stack.Screen name="ExpenseDetail" component={T.ExpenseDetail} />
+      <Stack.Screen name="ExpenseForm" component={T.ExpenseForm} options={modal} />
+      <Stack.Screen name="Budget" component={T.Budget} options={modal} />
+      <Stack.Screen name="Reports" component={T.Reports} />
+      <Stack.Screen name="Cards" component={T.Cards} />
+      <Stack.Screen name="CardDetail" component={T.CardDetail} />
+      <Stack.Screen name="CardForm" component={T.CardForm} options={modal} />
+      <Stack.Screen name="CardTransaction" component={T.CardTransaction} options={modal} />
+      <Stack.Screen name="Savings" component={T.Savings} />
+      <Stack.Screen name="AssetDetail" component={T.AssetDetail} />
+      <Stack.Screen name="AssetForm" component={T.AssetForm} options={modal} />
+      <Stack.Screen name="AssetTransaction" component={T.AssetTransaction} options={modal} />
+
+      <Stack.Screen name="FamilyJoin" component={T.FamilyJoin} options={modal} />
+      <Stack.Screen name="FamilyEdit" component={T.FamilyEdit} options={modal} />
+
+      <Stack.Screen name="Settings" component={T.Settings} />
+      <Stack.Screen name="Profile" component={T.Profile} options={modal} />
+      <Stack.Screen name="ChangePassword" component={T.ChangePassword} options={modal} />
+      <Stack.Screen name="Categories" component={T.Categories} />
+      <Stack.Screen name="CategoryForm" component={T.CategoryForm} options={modal} />
+      <Stack.Screen name="Templates" component={T.Templates} />
+      <Stack.Screen name="TemplateForm" component={T.TemplateForm} options={modal} />
+    </Stack.Navigator>
+  );
 }
 
-/** Web AppShell's global modals, mounted once for the whole app. */
-function GlobalModals() {
-  const {
-    createListModalOpen,
-    createListModalInitialType,
-    setCreateListModalOpen,
-    inviteModalTargetList,
-    setInviteModalTargetList,
-    changePasswordModalOpen,
-    authModalOpen,
-  } = useAppStore();
-
+function AuthFlow() {
   return (
-    <>
-      {createListModalOpen && (
-        <CreateListModal initialType={createListModalInitialType} onClose={() => setCreateListModalOpen(false)} />
-      )}
-      {inviteModalTargetList && (
-        <InviteModal list={inviteModalTargetList} onClose={() => setInviteModalTargetList(null)} />
-      )}
-      {changePasswordModalOpen && <ChangePasswordModal />}
-      {authModalOpen && <AuthModal />}
-    </>
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Welcome" component={T.Welcome} />
+      <AuthStack.Screen name="Login" component={T.Login} />
+      <AuthStack.Screen name="Register" component={T.Register} />
+    </AuthStack.Navigator>
   );
 }
 
@@ -234,29 +175,18 @@ function Root() {
   const { isAuthenticated, fetchInitialData } = useAppStore();
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    if (isAuthenticated) fetchInitialData();
+  }, [isAuthenticated, fetchInitialData]);
 
-  // STRICT AUTH ENFORCEMENT: If user is not authenticated, show AuthModal only
-  if (!isAuthenticated) {
-    return (
-      <View style={tw`flex-1 bg-slate-950 items-center justify-center p-4`}>
-        <StatusBar barStyle="light-content" />
-        <AuthModal />
-      </View>
-    );
-  }
+  const navTheme = isDark
+    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: '#020617', card: '#0f172a' } }
+    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#f1f5f9', card: '#ffffff' } };
 
   return (
-    <View style={tw`flex-1 bg-slate-50 dark:bg-slate-950`}>
+    <View style={tw`flex-1 bg-slate-100 dark:bg-slate-950`}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <NavigationContainer ref={navigationRef} onReady={syncPathname} onStateChange={syncPathname}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Tabs" component={MainTabs} />
-          <Stack.Screen name="List" component={ListScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      <GlobalModals />
+      <NavigationContainer theme={navTheme}>{isAuthenticated ? <AppStack /> : <AuthFlow />}</NavigationContainer>
+      <ActionSheetHost />
       <ToastHost />
     </View>
   );

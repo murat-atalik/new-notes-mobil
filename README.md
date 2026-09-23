@@ -2,8 +2,8 @@
 
 Akıllı Liste uygulamasının React Native CLI karşılığıdır. Expo kullanılmaz.
 
-Arayüz `new-notes-main` web uygulamasının telefon görünümüyle birebir aynıdır; her web bileşeninin
-`src/components/` altında aynı isimli bir karşılığı vardır. Port kuralları: [docs/web-port-guide.md](./docs/web-port-guide.md).
+Arayüz mobil için sıfırdan tasarlanmıştır (web düzeninin kopyası değildir); bilgi mimarisi,
+akışlar ve bileşenler: [docs/mobile-ux.md](./docs/mobile-ux.md).
 
 ## React Native CLI kurulumu
 
@@ -61,6 +61,12 @@ Mobil uygulama şu endpoint sözleşmesini kullanır:
 - `GET/POST/PUT/DELETE /api/lists` — listeler
 - `GET/POST/PUT/DELETE /api/items` — normalize edilmiş liste maddeleri
 - `GET/POST/PUT/DELETE /api/expenses`, `/api/cards`, `/api/savings` — finans
+- `POST /api/mobile/auth/{login,register,change-password}` — sunucu tarafı kimlik doğrulama
+- `GET /api/mobile/bootstrap?userId=` — kullanıcıya göre filtrelenmiş, şifresiz veri
+- `POST /api/mobile/family/join`, `/api/mobile/lists/{join,invite}` — kodla katılma / davet
+
+`/api/mobile/*` uç noktaları `new-notes` deposunun `feat/mobile-api` dalındadır. Bu dal deploy
+edilene kadar uygulama eski uç noktalara otomatik geri döner.
 - `GET /api/initial-data`, `GET /api/exchange-rates` — ilk yükleme ve döviz kurları
 
 State yönetimi Redux Toolkit ile yapılır; ekranlar `src/screens/` altında,

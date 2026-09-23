@@ -4,12 +4,12 @@ These instructions are loaded by GitHub Copilot (Chat, Edits and the coding agen
 
 ## Overview
 
-**new-notes-mobil** ("Akıllı Liste") is the React Native CLI twin of the `new-notes-main` web app: family shopping lists, to-dos and notes, finance (cards, savings, expenses), family, analytics and settings. **Expo is not used.** The mobile UI must stay **1:1 identical to the web app's phone-width view** — every web component in `new-notes-main/src/components/X.tsx` has a twin at `src/components/X.tsx` with the same name, props, texts and logic. See [docs/web-port-guide.md](../docs/web-port-guide.md) — it overrides the style/strings rules below for ported components.
+**new-notes-mobil** ("Akıllı Liste") is the React Native CLI app of the `new-notes` web product: family shopping lists, to-dos and notes, wallet (expenses, cards, savings, reports) and family sharing. **Expo is not used.** The UI is a **native-first redesign** (not a port of the web layout) — see [docs/mobile-ux.md](../docs/mobile-ux.md) for the IA, principles and component catalog.
 
-- React Native **0.87.1**, React **19.2.3**, TypeScript **6.x** with `strict: true`.
-- State: the web's zustand store (`src/store/useAppStore.ts`), persisted through a synchronous `localStorage` facade over AsyncStorage (`src/lib/storage.ts`), talking to the `new-notes-main` API (`src/config/api.ts`).
-- Styling: `twrnc` Tailwind classes (`src/lib/tw.ts`) copied from the web; icons from `lucide-react-native`; gradients via `react-native-linear-gradient`; charts drawn with `react-native-svg`.
-- Navigation: react-navigation (native stack + bottom tabs with the custom `BottomNav`), wrapped by a Next-style `useRouter()/usePathname()` shim (`src/lib/router.ts`).
+- React Native **0.87.1**, React **19.2.3**, TypeScript **6.x** `strict`.
+- State: zustand store `src/store/useAppStore.ts` (same business rules as the web store), persisted via a sync `localStorage` facade over AsyncStorage (`src/lib/storage.ts`).
+- Backend: the `new-notes` Next.js API. Auth and data use the mobile routes `/api/mobile/*` (server-side login, user-scoped bootstrap without passwords) through `src/services/mobileApi.ts`, which falls back to the legacy routes while an older backend is deployed.
+- UI: `twrnc` classes (`src/lib/tw.ts`), design system `src/design/`, icons `lucide-react-native`, charts via `react-native-svg`, native date picker, react-navigation (native stack + custom tab bar).
 - The app is Turkish-language.
 
 ## Working agreements (read first — these override defaults)
@@ -37,20 +37,15 @@ The committed native folders were generated from the React Native 0.87.1 CLI tem
 
 ## Architecture
 
-| Part | Where | Mirrors web |
-| --- | --- | --- |
-| Types, seed data, pure libs | `src/types.ts`, `src/data/`, `src/lib/{currencyUnits,groupingUtils,permissions,validations}.ts` | copied verbatim from `new-notes-main/src` |
-| Store | `src/store/useAppStore.ts` | web store; hash routing removed, `fetch` prefixed with `API_BASE_URL`, `rehydrate()` after storage preload |
-| Storage | `src/lib/storage.ts` | `localStorage` API over AsyncStorage (`preloadStorage()` runs before first render) |
-| Styling | `src/lib/tw.ts` | Tailwind classes; web-only tokens are dropped by `clean()` |
-| Router | `src/lib/router.ts` | `next/navigation` `useRouter` / `usePathname` |
-| Native helpers | `src/lib/native.ts` | clipboard, share, vibrate |
-| Hooks | `src/hooks/` | `useTheme` (same API + `isDark`), stubs for speech/PWA/body-scroll |
-| UI primitives | `src/components/ui/` | `Text`, `Btn`, `Input`, `Select`, `DateInput`, `Overlay`, `Panel`, `Gradient`, `Grid`, `Progress` |
-| Components | `src/components/*.tsx` | one file per web component |
-| Root | `App.tsx` | web `app/*/page.tsx` routes + `AppShell` global modals |
-
-When the web app changes, port the same change to the twin file here.
+| Part | Where |
+| --- | --- |
+| Domain types, seed data, pure libs | `src/types.ts`, `src/data/`, `src/lib/{currencyUnits,groupingUtils,permissions,validations}.ts` (shared with the web) |
+| Store | `src/store/useAppStore.ts` |
+| API client | `src/services/mobileApi.ts` |
+| Derived data & formatting | `src/logic/selectors.ts`, `src/logic/format.ts` |
+| Design system | `src/design/` (`index.tsx` components, `primitives.tsx`, `charts.tsx`) |
+| Navigation | `src/navigation/types.ts` (routes & params), `src/navigation/TabBar.tsx`, `App.tsx` (navigators) |
+| Screens | `src/screens/<area>/*Screen.tsx` — auth, home, lists, list-detail, wallet, cards, savings, family, settings |
 
 ## Conventions
 

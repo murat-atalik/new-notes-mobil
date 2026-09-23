@@ -27,15 +27,9 @@ describe('tw', () => {
 
   it('parses alpha, arbitrary values and shadows', () => {
     const style = tw`bg-white/95 text-[10px] min-w-[17px] rounded-2xl shadow-sm`;
-    expect(style.fontSize).toBe(11);
+    expect(style.fontSize).toBe(10);
     expect(style.minWidth).toBe(17);
     expect(style.borderRadius).toBe(16);
-  });
-
-  it('bumps small web font sizes for mobile', () => {
-    expect(tw`text-xs`.fontSize).toBe(13);
-    expect(tw`dark:text-sm`.fontSize).toBeUndefined();
-    expect(clean('text-[9px] sm:text-xs')).toBe('text-[10px] sm:text-[13px]');
   });
 
   it('ic() maps icon classes to lucide props', () => {
