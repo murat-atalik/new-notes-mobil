@@ -40,6 +40,9 @@ PostgreSQL'e bağlanmaz; DB şifresi uygulama paketine gömülmez. Mobil uygulam
 yalnızca son başarılı sunucu yanıtını önbellek olarak AsyncStorage'da tutar;
 AsyncStorage kaynak veri değildir.
 
+Varsayılan canlı backend:
+`https://new-notes-psi.vercel.app`
+
 Geliştirme sırasında `new-notes-main` uygulamasını `http://localhost:3000`
 adresinde çalıştırın. iOS Simulator varsayılan olarak bu adrese, Android
 emulator ise `http://10.0.2.2:3000` adresine bağlanır. Deploy edilmiş bir
