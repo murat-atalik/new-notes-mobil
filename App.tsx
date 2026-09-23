@@ -5,7 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { enableScreens } from 'react-native-screens';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthScreen } from './src/screens/AuthScreen';
 import { DetailScreen } from './src/screens/DetailScreen';
@@ -24,6 +24,8 @@ import {
   deleteServerList,
 } from './src/store/appStore';
 import { store, type AppDispatch } from './src/store/store';
+import { strings } from './src/strings/tr';
+import { styles } from './src/screens/styles';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -46,13 +48,7 @@ enableScreens();
 function MainTabs() {
   const dispatch = useDispatch<AppDispatch>();
   const state = useSelector(selectApp);
-  const tabLabels: Record<Tab, string> = {
-    lists: 'Listeler',
-    finance: 'Finans',
-    family: 'Ailemiz',
-    analytics: 'Raporlar',
-    settings: 'Ayarlar',
-  };
+  const tabLabels: Record<Tab, string> = strings.nav;
 
   React.useEffect(() => {
     void dispatch(hydrateApp());
@@ -60,17 +56,22 @@ function MainTabs() {
 
   if (state.status === 'loading' || state.status === 'idle') {
     return (
-      <View>
-        <ActivityIndicator />
-        <Text>Sunucu verileri yükleniyor</Text>
-      </View>
+      <SafeAreaView style={styles.safeScreen}>
+        <View style={styles.centerState}>
+          <ActivityIndicator />
+          <Text style={styles.lead}>{strings.common.loading}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
   if (state.error && !state.user) {
     return (
-      <View>
-        <Text>{state.error}</Text>
-      </View>
+      <SafeAreaView style={styles.safeScreen}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorTitle}>{strings.common.error}</Text>
+          <Text style={styles.errorText}>{state.error}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 

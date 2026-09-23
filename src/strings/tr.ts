@@ -10,6 +10,7 @@ export const strings = {
     darkTheme: 'Koyu tema',
     justNow: 'Az önce',
     error: 'Bir hata oluştu',
+    loading: 'Veriler yükleniyor...',
   },
   listTypes: { SHOPPING: 'Alışveriş', TODO: 'Yapılacaklar', NOTE: 'Notlar' } as Record<
     ListType,

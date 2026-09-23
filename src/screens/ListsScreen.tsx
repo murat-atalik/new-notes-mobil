@@ -1,6 +1,7 @@
 import React from 'react';
-import { Button, FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Button } from '../components/Button';
 
 import type { RootStackParamList } from '../../App';
 import type { AppList, ListType } from '../types';
@@ -34,12 +35,18 @@ export function ListsScreen({ lists, onDelete, onCreate }: Props) {
       renderItem={({ item }) => (
         <View style={styles.card}>
           <Button
+            variant="secondary"
             title={item.title}
             onPress={() => navigation.navigate('Detail', { list: item })}
           />
           <Text style={styles.subtitle}>{item.title}</Text>
           <Text style={styles.lead}>{item.description}</Text>
-          <Button title={strings.lists.deleteButton} onPress={() => void onDelete(item.id)} />
+          <Button
+            title={strings.lists.deleteButton}
+            variant="danger"
+            small
+            onPress={() => void onDelete(item.id)}
+          />
         </View>
       )}
       ListHeaderComponent={

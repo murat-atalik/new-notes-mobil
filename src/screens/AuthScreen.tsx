@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Alert, Button, SafeAreaView, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '../components/Button';
 
 import { strings } from '../strings/tr';
 import { styles } from './styles';
@@ -30,41 +32,48 @@ export function AuthScreen({ onLogin }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.card}>
-        <Text style={styles.title}>{strings.app.name}</Text>
-        <Text style={styles.lead}>{strings.auth.lead}</Text>
-        {isRegistering && (
+    <SafeAreaView style={styles.safeScreen}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.screen}
+      >
+        <View style={styles.card}>
+          <Text style={styles.title}>{strings.app.name}</Text>
+          <Text style={styles.lead}>{strings.auth.lead}</Text>
+          {isRegistering && (
+            <TextInput
+              placeholder={strings.auth.namePlaceholder}
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
+          )}
           <TextInput
-            placeholder={strings.auth.namePlaceholder}
-            value={name}
-            onChangeText={setName}
+            placeholder={strings.auth.usernamePlaceholder}
+            value={username}
+            onChangeText={setUsername}
             style={styles.input}
+            autoCapitalize="none"
           />
-        )}
-        <TextInput
-          placeholder={strings.auth.usernamePlaceholder}
-          value={username}
-          onChangeText={setUsername}
-          style={styles.input}
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder={strings.auth.passwordPlaceholder}
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          secureTextEntry
-        />
-        <Button
-          title={isRegistering ? strings.auth.register : strings.auth.login}
-          onPress={() => void submit()}
-        />
-        <Button
-          title={isRegistering ? strings.auth.haveAccount : strings.auth.newAccount}
-          onPress={() => setIsRegistering((value) => !value)}
-        />
-      </View>
+          <TextInput
+            placeholder={strings.auth.passwordPlaceholder}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.input}
+            secureTextEntry
+          />
+          <Button
+            variant="primary"
+            title={isRegistering ? strings.auth.register : strings.auth.login}
+            onPress={() => void submit()}
+          />
+          <Button
+            variant="secondary"
+            title={isRegistering ? strings.auth.haveAccount : strings.auth.newAccount}
+            onPress={() => setIsRegistering((value) => !value)}
+          />
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
