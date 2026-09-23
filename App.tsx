@@ -26,6 +26,7 @@ import {
 import { store, type AppDispatch } from './src/store/store';
 import { strings } from './src/strings/tr';
 import { styles } from './src/screens/styles';
+import { colors } from './src/constants/colors';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -94,6 +95,12 @@ function MainTabs() {
         headerShown: true,
         title: tabLabels[route.name],
         tabBarIcon: () => <Text style={styles.navIcon}>{strings.icons[route.name]}</Text>,
+        tabBarActiveTintColor: colors.primaryDark,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: styles.navLabel,
+        tabBarStyle: styles.tabBar,
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
       })}
     >
       <Tabs.Screen name="lists">
