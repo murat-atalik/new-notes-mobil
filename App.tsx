@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StatusBar, View } from 'react-native';
+import { StatusBar, View } from 'react-native';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationOptions } from '@react-navigation/native-stack';
@@ -31,6 +31,7 @@ import { JoinListScreen } from './src/screens/lists/JoinListScreen';
 import { ListFormScreen } from './src/screens/lists/ListFormScreen';
 import { ListShareScreen } from './src/screens/lists/ListShareScreen';
 import { ListsScreen } from './src/screens/lists/ListsScreen';
+import { SplashScreen } from './src/screens/SplashScreen';
 import { AssetDetailScreen } from './src/screens/savings/AssetDetailScreen';
 import { AssetFormScreen } from './src/screens/savings/AssetFormScreen';
 import { AssetTransactionScreen } from './src/screens/savings/AssetTransactionScreen';
@@ -192,26 +193,29 @@ function Root() {
   );
 }
 
+/** Resolves with `undefined` instead of rejecting/hanging past `ms` (used so an offline
+ * or slow network can't strand the user on the splash screen). */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return Promise.race([promise, new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), ms))]);
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    preloadStorage().then(() => {
+    preloadStorage().then(async () => {
       loadTheme();
-      useAppStore.getState().rehydrate();
+      const store = useAppStore.getState();
+      store.rehydrate();
+      if (store.isAuthenticated) {
+        // Confirms the persisted session token is still valid and loads fresh data in one
+        // request, before the first frame renders — otherwise the app would flash the main
+        // screen and immediately bounce back to login the moment the token turns out expired.
+        await withTimeout(store.fetchInitialData(true), 8000);
+      }
       setReady(true);
     });
   }, []);
 
-  return (
-    <SafeAreaProvider>
-      {ready ? (
-        <Root />
-      ) : (
-        <View style={tw`flex-1 bg-slate-950 items-center justify-center`}>
-          <ActivityIndicator color="#10b981" />
-        </View>
-      )}
-    </SafeAreaProvider>
-  );
+  return <SafeAreaProvider>{ready ? <Root /> : <SplashScreen />}</SafeAreaProvider>;
 }

@@ -22,6 +22,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeFactory = factory
 
     window = UIWindow(frame: UIScreen.main.bounds)
+    // Matches LaunchScreen.storyboard so there's no white flash between the native
+    // launch screen and the first React Native frame (SplashScreen.tsx paints next).
+    window?.backgroundColor = UIColor(red: 2/255, green: 6/255, blue: 23/255, alpha: 1)
 
     factory.startReactNative(
       withModuleName: "NewNotesMobile",
