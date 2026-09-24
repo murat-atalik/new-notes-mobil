@@ -134,24 +134,30 @@ export const ListShareScreen: React.FC<RootScreenProps<'ListShare'>> = ({ route 
         </View>
       </Card>
 
-      <View style={tw`gap-2`}>
-        <TextField
-          label="Kullanıcı adıyla davet et"
-          icon={AtSign}
-          value={username}
-          onChangeText={(t) => {
-            setUsername(t);
-            if (inviteError) setInviteError(undefined);
-          }}
-          placeholder="kullaniciadi"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="send"
-          onSubmitEditing={onInvite}
-          error={inviteError}
-        />
-        <Button title="Davet Et" icon={UserPlus} variant="tinted" size="md" onPress={onInvite} loading={inviting} disabled={!username.trim()} />
-      </View>
+      {isOwner ? (
+        <View style={tw`gap-2`}>
+          <TextField
+            label="Kullanıcı adıyla davet et"
+            icon={AtSign}
+            value={username}
+            onChangeText={(t) => {
+              setUsername(t);
+              if (inviteError) setInviteError(undefined);
+            }}
+            placeholder="kullaniciadi"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="send"
+            onSubmitEditing={onInvite}
+            error={inviteError}
+          />
+          <Button title="Davet Et" icon={UserPlus} variant="tinted" size="md" onPress={onInvite} loading={inviting} disabled={!username.trim()} />
+        </View>
+      ) : (
+        <Text variant="footnote" tone="muted" className="px-1">
+          Kullanıcı adıyla davet göndermek yalnızca liste sahibine açıktır. Davet kodunu paylaşarak da katılım sağlayabilirsin.
+        </Text>
+      )}
 
       <ListGroup header={`Üyeler (${members.length})`}>
         {members.map((m) => {
