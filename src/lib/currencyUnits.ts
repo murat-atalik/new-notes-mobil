@@ -18,6 +18,8 @@ export interface CurrencyUnitConfig {
   defaultRateInTRY: number; // Referans güncel piyasa değeri (₺)
   unitSuffix: string; // Adet, Gram, €, $, ₺
   icon: string;
+  /** Solid hex accent used by the colorful currency/unit picker. */
+  color: string;
   badgeBg: string;
   badgeText: string;
   description: string;
@@ -32,6 +34,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 1,
     unitSuffix: '₺',
     icon: '₺',
+    color: '#10b981',
     badgeBg: 'bg-slate-100 dark:bg-slate-800',
     badgeText: 'text-slate-700 dark:text-slate-300',
     description: 'Standart TL Mevduat ve Nakit',
@@ -44,6 +47,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 37.80,
     unitSuffix: '€',
     icon: '💶',
+    color: '#6366f1',
     badgeBg: 'bg-blue-50 dark:bg-blue-950/60',
     badgeText: 'text-blue-700 dark:text-blue-300',
     description: 'Avrupa Para Birimi',
@@ -56,6 +60,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 34.25,
     unitSuffix: '$',
     icon: '💵',
+    color: '#0ea5e9',
     badgeBg: 'bg-emerald-50 dark:bg-emerald-950/60',
     badgeText: 'text-emerald-700 dark:text-emerald-300',
     description: 'ABD Doları Varlığı',
@@ -68,6 +73,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 3150,
     unitSuffix: 'Gram',
     icon: '🪙',
+    color: '#f59e0b',
     badgeBg: 'bg-amber-50 dark:bg-amber-950/60',
     badgeText: 'text-amber-700 dark:text-amber-300',
     description: 'Fiziki veya Banka Gram Altın',
@@ -80,6 +86,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 5150,
     unitSuffix: 'Adet',
     icon: '🥇',
+    color: '#ca8a04',
     badgeBg: 'bg-yellow-50 dark:bg-yellow-950/60',
     badgeText: 'text-yellow-800 dark:text-yellow-300',
     description: '1.75 gr Darphane Çeyrek Altın',
@@ -92,6 +99,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 10300,
     unitSuffix: 'Adet',
     icon: '🥈',
+    color: '#b45309',
     badgeBg: 'bg-amber-100 dark:bg-amber-950/80',
     badgeText: 'text-amber-800 dark:text-amber-200',
     description: '3.50 gr Darphane Yarım Altın',
@@ -104,6 +112,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 20600,
     unitSuffix: 'Adet',
     icon: '👑',
+    color: '#92400e',
     badgeBg: 'bg-amber-200/80 dark:bg-amber-900/50',
     badgeText: 'text-amber-900 dark:text-amber-100',
     description: '7.00 gr Darphane Ziynet Tam Altın',
@@ -116,6 +125,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 21250,
     unitSuffix: 'Adet',
     icon: '🎖️',
+    color: '#dc2626',
     badgeBg: 'bg-red-50 dark:bg-red-950/60',
     badgeText: 'text-red-700 dark:text-red-300',
     description: '7.21 gr Darphane Ata Lira',
@@ -128,6 +138,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 86000,
     unitSuffix: 'Ons',
     icon: '✨',
+    color: '#eab308',
     badgeBg: 'bg-yellow-100 dark:bg-yellow-900/40',
     badgeText: 'text-yellow-700 dark:text-yellow-200',
     description: '31.10 gr Uluslararası Ons Altın',
@@ -140,6 +151,7 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
     defaultRateInTRY: 44.90,
     unitSuffix: '£',
     icon: '💷',
+    color: '#9333ea',
     badgeBg: 'bg-purple-50 dark:bg-purple-950/60',
     badgeText: 'text-purple-700 dark:text-purple-300',
     description: 'İngiliz Sterlini Varlığı',
@@ -149,10 +161,10 @@ export const CURRENCY_UNITS: Record<CurrencyUnitKey, CurrencyUnitConfig> = {
 export const CURRENCY_UNIT_LIST = Object.values(CURRENCY_UNITS);
 
 export const BANK_CARD_CURRENCIES = [
-  { key: 'TRY', label: 'Türk Lirası (₺)', symbol: '₺', icon: '₺', code: 'TRY' },
-  { key: 'EUR', label: 'Euro (€)', symbol: '€', icon: '💶', code: 'EUR' },
-  { key: 'USD', label: 'Amerikan Doları ($)', symbol: '$', icon: '💵', code: 'USD' },
-  { key: 'GBP', label: 'İngiliz Sterlini (£)', symbol: '£', icon: '💷', code: 'GBP' },
+  { key: 'TRY', label: 'Türk Lirası (₺)', symbol: '₺', icon: '₺', code: 'TRY', color: CURRENCY_UNITS.TRY.color },
+  { key: 'EUR', label: 'Euro (€)', symbol: '€', icon: '💶', code: 'EUR', color: CURRENCY_UNITS.EUR.color },
+  { key: 'USD', label: 'Amerikan Doları ($)', symbol: '$', icon: '💵', code: 'USD', color: CURRENCY_UNITS.USD.color },
+  { key: 'GBP', label: 'İngiliz Sterlini (£)', symbol: '£', icon: '💷', code: 'GBP', color: CURRENCY_UNITS.GBP.color },
 ];
 
 /**

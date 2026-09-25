@@ -1,37 +1,29 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import {
   AmountField,
   ChipRow,
   DateField,
-  FieldLabel,
   FormScreen,
   ListGroup,
   SelectField,
+  SwatchField,
   SwitchRow,
-  Text,
   TextField,
-  iconByName,
   showToast,
   type ChipOption,
   type SelectOption,
+  type SwatchOption,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { CARD_TYPE_META, cardAvailable, resolveExpenseCard, useFinance } from '../../logic/selectors';
 import type { RootScreenProps } from '../../navigation/types';
-import { getCurrencySymbol } from '../../lib/currencyUnits';
+import { BANK_CARD_CURRENCIES, getCurrencySymbol } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppStore } from '../../store/useAppStore';
 import type { ExpenseLog, PaymentCard } from '../../types';
 import { EXTRA_EXPENSE_CATEGORIES, type CategoryMeta } from './shared';
-
-const CURRENCIES: ChipOption<string>[] = [
-  { value: 'TRY', label: '₺ TRY' },
-  { value: 'USD', label: '$ USD' },
-  { value: 'EUR', label: '€ EUR' },
-  { value: 'GBP', label: '£ GBP' },
-];
 
 const CASH = 'Nakit';
 const OTHER = 'Diğer';
@@ -101,11 +93,8 @@ export const ExpenseFormScreen: React.FC<RootScreenProps<'ExpenseForm'>> = ({ na
   if (category && !categoryOptions.some((c) => c.name === category)) {
     categoryOptions.unshift({ name: category, color: '#64748b', icon: 'Tag' });
   }
-  const columns: CategoryMeta[][] = [];
-  categoryOptions.forEach((c, i) => {
-    if (i % 2 === 0) columns.push([]);
-    columns[columns.length - 1].push(c);
-  });
+  const categorySwatches: SwatchOption[] = categoryOptions.map((c) => ({ value: c.name, label: c.name, icon: c.icon, color: c.color }));
+  const currencySwatches: SwatchOption[] = BANK_CARD_CURRENCIES.map((c) => ({ value: c.code, label: c.label, emoji: c.icon, color: c.color }));
 
   const paymentOptions: SelectOption[] = [
     ...cards.map((c) => ({
@@ -189,45 +178,12 @@ export const ExpenseFormScreen: React.FC<RootScreenProps<'ExpenseForm'>> = ({ na
 
   return (
     <FormScreen title={existing ? 'Harcamayı Düzenle' : 'Harcama Ekle'} onSubmit={onSubmit} submitDisabled={!valid}>
-      <View style={tw`gap-2`}>
+      <View style={tw`gap-3`}>
         <AmountField value={amount} onChangeText={setAmount} currencySymbol={getCurrencySymbol(currency)} autoFocus={!existing} />
-        <View style={tw`items-center`}>
-          <ChipRow options={CURRENCIES} value={currency} onChange={setCurrency} />
-        </View>
+        <SwatchField label="Para birimi" value={currency} onChange={setCurrency} options={currencySwatches} sheetTitle="Para birimi seç" />
       </View>
 
-      <FieldLabel label="Kategori">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`gap-2 px-1`} style={tw`-mx-1`}>
-          {columns.map((col, ci) => (
-            <View key={ci} style={tw`gap-2`}>
-              {col.map((c) => {
-                const active = c.name === category;
-                const Icon = iconByName(c.icon);
-                return (
-                  <Pressable
-                    key={c.name}
-                    onPress={() => setCategory(c.name)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    style={[
-                      tw.style(
-                        'h-11 px-3.5 rounded-2xl flex-row items-center gap-2 border',
-                        active ? '' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800',
-                      ),
-                      active ? { backgroundColor: c.color, borderColor: c.color } : null,
-                    ]}
-                  >
-                    <Icon size={16} color={active ? '#fff' : c.color} strokeWidth={2.2} />
-                    <Text variant="subhead" weight="semibold" className={active ? 'text-white' : 'text-slate-700 dark:text-slate-200'} numberOfLines={1}>
-                      {c.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-        </ScrollView>
-      </FieldLabel>
+      <SwatchField label="Kategori" value={category} onChange={setCategory} options={categorySwatches} sheetTitle="Kategori seç" />
 
       <TextField
         label={isCheckout ? 'Not' : 'Başlık / Not'}

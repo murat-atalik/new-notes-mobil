@@ -17,7 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import * as Icons from 'lucide-react-native';
-import { ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, X } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { create } from 'zustand';
 
@@ -757,6 +757,85 @@ export const SelectField: React.FC<{
     />
   </FieldLabel>
 );
+
+export type SwatchOption = { value: string; label: string; sublabel?: string; icon?: string; emoji?: string; color?: string };
+
+/**
+ * A colorful "sticker grid" picker — the trigger shows the selected option as a tinted
+ * pill, tapping it opens a sheet of tinted cards (icon + label, a checkmark on the
+ * active one). Used where a plain text dropdown feels too flat: currency, category…
+ */
+export const SwatchField: React.FC<{
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: SwatchOption[];
+  placeholder?: string;
+  hint?: string;
+  sheetTitle?: string;
+}> = ({ label, value, onChange, options, placeholder = 'Seç', hint, sheetTitle }) => {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+  const color = selected?.color || palette.brandLight;
+  return (
+    <FieldLabel label={label} hint={hint}>
+      <Btn
+        onPress={() => setOpen(true)}
+        accessibilityLabel={label}
+        className="flex-row items-center gap-3 h-14 pl-2.5 pr-4 rounded-2xl border"
+        style={{ backgroundColor: selected ? `${color}14` : undefined, borderColor: selected ? `${color}40` : tw.color('slate-200') }}
+      >
+        <IconTile icon={selected?.icon} emoji={selected?.emoji} color={color} solid />
+        <Text variant="body" weight="bold" className="flex-1" numberOfLines={1}>
+          {selected ? selected.label : placeholder}
+        </Text>
+        <ChevronDown size={18} color={palette.slate400} />
+      </Btn>
+      <Sheet visible={open} onClose={() => setOpen(false)} title={sheetTitle || label}>
+        <View style={tw`flex-row flex-wrap gap-3`}>
+          {options.map((o) => {
+            const active = o.value === value;
+            const c = o.color || palette.brandLight;
+            return (
+              <Pressable
+                key={o.value}
+                onPress={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={[
+                  tw`grow basis-[47%] rounded-3xl p-3.5 gap-3 border-2`,
+                  { backgroundColor: `${c}14`, borderColor: active ? c : 'transparent' },
+                ]}
+              >
+                <View style={tw`flex-row items-center justify-between`}>
+                  <IconTile icon={o.icon} emoji={o.emoji} color={c} solid size="md" />
+                  {active ? (
+                    <View style={[tw`w-6 h-6 rounded-full items-center justify-center`, { backgroundColor: c }]}>
+                      <Check size={13} color="#fff" strokeWidth={3} />
+                    </View>
+                  ) : null}
+                </View>
+                <View>
+                  <Text variant="subhead" weight="bold" numberOfLines={1}>
+                    {o.label}
+                  </Text>
+                  {o.sublabel ? (
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {o.sublabel}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Sheet>
+    </FieldLabel>
+  );
+};
 
 export const DateField: React.FC<{
   label?: string;

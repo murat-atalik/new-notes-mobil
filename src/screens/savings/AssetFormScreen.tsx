@@ -10,9 +10,11 @@ import {
   palette,
   SelectField,
   showToast,
+  SwatchField,
   SwitchRow,
   Text,
   TextField,
+  type SwatchOption,
 } from '../../design';
 import { formatMoney, parseAmount } from '../../logic/format';
 import { useFinance } from '../../logic/selectors';
@@ -23,7 +25,7 @@ import { useAppStore } from '../../store/useAppStore';
 import type { SavingsAssetType } from '../../types';
 import { ASSET_TYPE_META, ASSET_TYPE_ORDER, assetTypeOf, isUnitAsset } from './assetShared';
 
-const CURRENCY_OPTIONS = CURRENCY_UNIT_LIST.map((u) => ({ value: u.key, label: `${u.icon}  ${u.label}` }));
+const CURRENCY_SWATCHES: SwatchOption[] = CURRENCY_UNIT_LIST.map((u) => ({ value: u.key, label: u.label, sublabel: u.description, emoji: u.icon, color: u.color }));
 
 const numStr = (n?: number) => (n ? String(n).replace('.', ',') : '');
 
@@ -168,7 +170,7 @@ export const AssetFormScreen: React.FC<RootScreenProps<'AssetForm'>> = ({ route 
       <TextField label="Başlık" value={title} onChangeText={setTitle} placeholder="Örn. Çeyrek altın birikimi, Ev peşinatı" autoFocus={!existing} />
       <TextField label="Kurum / Banka" value={institution} onChangeText={setInstitution} placeholder="Örn. Garanti BBVA, Fiziki kasa" />
 
-      <SelectField label="Para birimi / birim" value={currency} onChange={applyCurrency} options={CURRENCY_OPTIONS} />
+      <SwatchField label="Para birimi / birim" value={currency} onChange={applyCurrency} options={CURRENCY_SWATCHES} sheetTitle="Para birimi / birim seç" />
 
       {unit ? (
         <Card className="gap-4">

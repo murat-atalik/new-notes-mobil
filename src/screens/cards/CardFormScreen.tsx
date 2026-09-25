@@ -9,16 +9,17 @@ import {
   iconByName,
   ListGroup,
   palette,
-  Segmented,
   SelectField,
   showToast,
+  SwatchField,
   SwitchRow,
   Text,
   TextField,
+  type SwatchOption,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { CARD_TYPE_META, isCreditCard } from '../../logic/selectors';
-import { CUTOFF_PRESETS } from '../../lib/currencyUnits';
+import { BANK_CARD_CURRENCIES, CUTOFF_PRESETS } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -26,12 +27,7 @@ import type { PaymentCardType } from '../../types';
 import { CARD_COLORS, CARD_TYPE_ORDER, CardVisual, PROVIDER_SUGGESTIONS } from './cardShared';
 
 type CurrencyCode = 'TRY' | 'USD' | 'EUR' | 'GBP';
-const CURRENCIES: { value: CurrencyCode; label: string }[] = [
-  { value: 'TRY', label: '₺ TRY' },
-  { value: 'USD', label: '$ USD' },
-  { value: 'EUR', label: '€ EUR' },
-  { value: 'GBP', label: '£ GBP' },
-];
+const CURRENCY_SWATCHES: SwatchOption[] = BANK_CARD_CURRENCIES.map((c) => ({ value: c.code, label: c.label, emoji: c.icon, color: c.color }));
 
 const DAY_OPTIONS = [{ value: '', label: 'Belirtilmedi' }, ...Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Her ayın ${i + 1}. günü` }))];
 
@@ -216,9 +212,13 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
       </FieldLabel>
 
       {hasCurrency ? (
-        <FieldLabel label="Para birimi">
-          <Segmented options={CURRENCIES} value={currency} onChange={setCurrency} />
-        </FieldLabel>
+        <SwatchField
+          label="Para birimi"
+          value={currency}
+          onChange={(v) => setCurrency(v as CurrencyCode)}
+          options={CURRENCY_SWATCHES}
+          sheetTitle="Para birimi seç"
+        />
       ) : null}
 
       {credit ? (

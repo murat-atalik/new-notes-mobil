@@ -1784,8 +1784,70 @@ export const useAppStore = create<AppState>((set, get) => {
 
     // UPDATE SAVINGS GOAL (PUT /api/savings)
     updateSavingsGoal: (id, updates) => {
-      set((state) => ({
-        savingsGoals: state.savingsGoals.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+      const state = get();
+      const oldGoal = state.savingsGoals.find((g) => g.id === id);
+      let updatedCards = state.paymentCards;
+
+      // A linked card is only charged for the goal's current amount; if editing changes
+      // that amount, or moves the goal to a different card, reverse the old effect and
+      // apply the new one — same rule addSavingsGoal already uses when a goal is created.
+      if (oldGoal) {
+        const oldAmount = oldGoal.currentAmount || 0;
+        const newAmount = updates.currentAmount !== undefined ? updates.currentAmount : oldAmount;
+        const oldCardId = oldGoal.linkedCardId;
+        const newCardId = 'linkedCardId' in updates ? updates.linkedCardId : oldCardId;
+        const now = new Date().toISOString().split('T')[0];
+        const txId = `tx-goal-${id}`;
+
+        if (newAmount !== oldAmount || newCardId !== oldCardId) {
+          if (oldCardId && oldAmount > 0) {
+            const oldCard = updatedCards.find((c) => c.id === oldCardId);
+            if (oldCard) {
+              const isCredit = oldCard.type === 'CREDIT_CARD';
+              updatedCards = updatedCards.map((c) =>
+                c.id === oldCard.id
+                  ? {
+                      ...c,
+                      balance: isCredit ? c.balance : (c.balance || 0) + oldAmount,
+                      currentDebt: isCredit ? Math.max(0, (c.currentDebt || 0) - oldAmount) : c.currentDebt,
+                      transactions: (c.transactions || []).filter((t) => t.id !== txId),
+                    }
+                  : c
+              );
+            }
+          }
+          if (newCardId && newAmount > 0) {
+            const newCard = updatedCards.find((c) => c.id === newCardId);
+            if (newCard) {
+              const isCredit = newCard.type === 'CREDIT_CARD';
+              const tx: CardTransaction = {
+                id: txId,
+                cardId: newCard.id,
+                amount: newAmount,
+                type: 'SPEND',
+                title: `🎯 Birikim: ${updates.title || oldGoal.title}`,
+                date: now,
+                categoryName: 'Birikim & Yatırım',
+                note: 'Birikim güncellendi',
+              };
+              updatedCards = updatedCards.map((c) =>
+                c.id === newCard.id
+                  ? {
+                      ...c,
+                      balance: isCredit ? c.balance : Math.max(0, (c.balance || 0) - newAmount),
+                      currentDebt: isCredit ? (c.currentDebt || 0) + newAmount : c.currentDebt,
+                      transactions: [tx, ...(c.transactions || []).filter((t) => t.id !== txId)],
+                    }
+                  : c
+              );
+            }
+          }
+        }
+      }
+
+      set((s) => ({
+        savingsGoals: s.savingsGoals.map((g) => (g.id === id ? { ...g, ...updates } : g)),
+        paymentCards: updatedCards,
       }));
       persist();
 
