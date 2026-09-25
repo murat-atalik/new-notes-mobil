@@ -109,7 +109,14 @@ export const IconTile: React.FC<{
 }> = ({ icon, emoji, color = palette.brandLight, size = 'md', solid = false }) => {
   const box = size === 'sm' ? 32 : size === 'lg' ? 52 : 40;
   const glyph = size === 'sm' ? 16 : size === 'lg' ? 26 : 20;
-  const Icon = typeof icon === 'string' || icon === undefined ? iconByName(icon as string) : icon;
+  // Some records (older SavingsAsset rows) store a lucide icon name in the same field
+  // that otherwise holds an emoji, depending on asset type — render it as an icon rather
+  // than literal text in that case.
+  const emojiIsIconName = !!emoji && /^[A-Z][A-Za-z0-9]*$/.test(emoji);
+  const Icon =
+    typeof icon === 'string' || icon === undefined
+      ? iconByName((icon as string) || (emojiIsIconName ? emoji : undefined))
+      : icon;
   return (
     <View
       style={[
@@ -117,7 +124,7 @@ export const IconTile: React.FC<{
         { width: box, height: box, borderRadius: box * 0.3, backgroundColor: solid ? color : `${color}22` },
       ]}
     >
-      {emoji ? (
+      {emoji && !emojiIsIconName ? (
         <BaseText style={{ fontSize: glyph }}>{emoji}</BaseText>
       ) : (
         <Icon size={glyph} color={solid ? '#fff' : color} strokeWidth={2.2} />

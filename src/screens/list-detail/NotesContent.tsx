@@ -46,7 +46,8 @@ const NoteCard: React.FC<{ item: ListItem; onPress: () => void; onLongPress: () 
       <View style={tw`flex-row items-center gap-1.5 pt-1`}>
         <View style={[tw`w-2 h-2 rounded-full`, { backgroundColor: color }]} />
         <Text variant="caption" tone="faint" numberOfLines={1} className="flex-1">
-          {category ? `${category.name} · ${formatDay(item.createdAt)}` : formatDay(item.createdAt)}
+          {/* Date first so a long category name is what gets truncated, not the (always short) date. */}
+          {category ? `${formatDay(item.createdAt)} · ${category.name}` : formatDay(item.createdAt)}
         </Text>
       </View>
     </Pressable>

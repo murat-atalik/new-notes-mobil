@@ -19,14 +19,16 @@ export function listSubtitle(list: AppList, items: ListItem[]): string {
   if (list.type === 'TODO') {
     if (!items.length) return 'Henüz görev yok';
     let overdue = 0;
-    let pending = 0;
+    let pending = 0; // mutually exclusive from overdue, matches the detail screen's buckets
     for (const item of items) {
       const bucket = taskBucket(item);
       if (bucket === 'OVERDUE') overdue += 1;
-      if (bucket !== 'DONE') pending += 1;
+      else if (bucket !== 'DONE') pending += 1;
     }
-    if (!pending) return 'Tüm görevler tamam 🎉';
-    return overdue ? `${overdue} geciken · ${pending} bekleyen` : `${pending} bekleyen`;
+    if (!overdue && !pending) return 'Tüm görevler tamam 🎉';
+    if (overdue && pending) return `${overdue} geciken · ${pending} bekleyen`;
+    if (overdue) return `${overdue} geciken`;
+    return `${pending} bekleyen`;
   }
   return items.length ? `${items.length} not` : 'Henüz not yok';
 }

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Copy, Crown, LogIn, LogOut, Pencil, Plus, Share2 } from 'lucide-react-native';
 
 import { Badge, Btn, EmptyState, Gradient, ListGroup, palette, ProgressBar, Row, Screen, Section, Text, UserAvatar, confirmAction, showToast } from '../../design';
-import { listProgress } from '../../logic/selectors';
+import { listProgress, roomProgress } from '../../logic/selectors';
 import { copyToClipboard, shareText } from '../../lib/native';
 import { isFamilyListForUser } from '../../lib/permissions';
 import { tw } from '../../lib/tw';
@@ -133,7 +133,10 @@ export const FamilyScreen: React.FC = () => {
         {familyLists.length ? (
           <ListGroup>
             {familyLists.map((l) => {
-              const p = listProgress(items.filter((i) => i.listId === l.id));
+              const listItems = items.filter((i) => i.listId === l.id);
+              const p = listProgress(listItems);
+              // Rooms are funded (₺), not checked off item by item — show that percentage instead.
+              const percent = l.type === 'ROOM' ? roomProgress(listItems).percent : p.percent;
               return (
                 <Row
                   key={l.id}
@@ -146,7 +149,7 @@ export const FamilyScreen: React.FC = () => {
                         {`${p.done}/${p.total}`}
                       </Text>
                       <View style={tw`w-full`}>
-                        <ProgressBar value={p.percent} color={l.color} height={5} />
+                        <ProgressBar value={percent} color={l.color} height={5} />
                       </View>
                     </View>
                   }

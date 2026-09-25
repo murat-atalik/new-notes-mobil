@@ -200,13 +200,16 @@ export const ListsScreen: React.FC = () => {
           {visible.map((list) => {
             const members = list.members.map((m) => userById.get(m.userId)).filter((u): u is User => !!u);
             const rowProps = {
-              key: list.id,
               items: itemsByList.get(list.id) ?? [],
               members,
               onPress: () => navigation.navigate('ListDetail', { listId: list.id }),
               onMore: () => openActions(list),
             };
-            return list.type === 'ROOM' ? <RoomCard {...rowProps} room={list} /> : <ListRow {...rowProps} list={list} />;
+            return list.type === 'ROOM' ? (
+              <RoomCard key={list.id} {...rowProps} room={list} />
+            ) : (
+              <ListRow key={list.id} {...rowProps} list={list} />
+            );
           })}
           <Text variant="caption" tone="faint" className="text-center pt-1">
             Daha fazla işlem için listeye basılı tut
