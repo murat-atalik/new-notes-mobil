@@ -119,6 +119,7 @@ export const FamilyScreen: React.FC = () => {
             left={<UserAvatar avatar={m.avatar} name={m.name} color={m.color} size="md" />}
             title={m.name}
             subtitle={`@${m.username}`}
+            tint={m.color}
             right={
               <View style={tw`flex-row items-center gap-1.5`}>
                 {m.id === user.id ? <Badge label="Sen" tone="brand" /> : null}
@@ -143,6 +144,7 @@ export const FamilyScreen: React.FC = () => {
                   icon={l.icon}
                   iconColor={l.color}
                   title={l.title}
+                  tint={l.color}
                   right={
                     <View style={tw`w-20 gap-1 items-end`}>
                       <Text variant="caption" tone="muted">
@@ -169,12 +171,12 @@ export const FamilyScreen: React.FC = () => {
       </Section>
 
       <ListGroup header="İşlemler">
-        <Row icon={LogIn} iconColor={palette.info} title="Aileye Katıl" subtitle="Aile koduyla başka bir aileye katıl" onPress={() => navigation.navigate('FamilyJoin')} />
+        <Row icon={LogIn} iconColor={palette.info} title="Aileye Katıl" subtitle="Aile koduyla başka bir aileye katıl" tint={palette.info} onPress={() => navigation.navigate('FamilyJoin')} />
         {isHead ? (
-          <Row icon={Pencil} iconColor={palette.brandLight} title="Aile Adını Değiştir" onPress={() => navigation.navigate('FamilyEdit', { mode: 'rename' })} />
+          <Row icon={Pencil} iconColor={palette.brandLight} title="Aile Adını Değiştir" tint={palette.brandLight} onPress={() => navigation.navigate('FamilyEdit', { mode: 'rename' })} />
         ) : null}
-        <Row icon={Plus} iconColor="#8b5cf6" title="Yeni Aile Kur" onPress={() => navigation.navigate('FamilyEdit', { mode: 'create' })} />
-        {!isHead ? <Row icon={LogOut} destructive title="Aileden Ayrıl" onPress={leave} chevron={false} /> : null}
+        <Row icon={Plus} iconColor="#8b5cf6" title="Yeni Aile Kur" tint="#8b5cf6" onPress={() => navigation.navigate('FamilyEdit', { mode: 'create' })} />
+        {!isHead ? <Row icon={LogOut} destructive tint={palette.danger} title="Aileden Ayrıl" onPress={leave} chevron={false} /> : null}
       </ListGroup>
     </Screen>
   );

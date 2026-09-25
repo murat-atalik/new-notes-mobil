@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, View } from 'react-native';
 import { Ellipsis } from 'lucide-react-native';
 
-import { Badge, Btn, Card, IconTile, ProgressBar, Text } from '../../design';
+import { Badge, Btn, Card, IconTile, palette, ProgressBar, Text } from '../../design';
 import { formatMoney } from '../../logic/format';
 import { roomProgress } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
@@ -19,6 +19,7 @@ export const RoomCard: React.FC<{
 }> = ({ room, items, members, onPress, onMore }) => {
   const { percent, savedValue, targetValue, totalCount } = roomProgress(items);
   const shared = room.isShared !== false;
+  const color = room.color || palette.brandLight;
   const subtitle = totalCount
     ? targetValue > 0
       ? `${totalCount} ürün · ${formatMoney(savedValue)} / ${formatMoney(targetValue)} birikti`
@@ -26,7 +27,7 @@ export const RoomCard: React.FC<{
     : 'Henüz ürün yok';
 
   return (
-    <Card onPress={onPress} onLongPress={onMore} className="gap-3">
+    <Card onPress={onPress} onLongPress={onMore} className="gap-3" style={{ backgroundColor: `${color}14`, borderColor: `${color}33` }}>
       <View style={tw`flex-row items-center gap-3`}>
         {room.coverPhoto ? (
           <Image source={{ uri: room.coverPhoto }} style={tw`w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800`} />

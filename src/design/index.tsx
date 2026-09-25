@@ -470,7 +470,9 @@ export const Row: React.FC<{
   onPress?: () => void;
   onLongPress?: () => void;
   disabled?: boolean;
-}> = ({ title, subtitle, value, valueTone = 'muted', left, icon, iconColor, right, chevron, destructive, onPress, onLongPress, disabled }) => {
+  /** Tints the row's own background with this color (e.g. its category/list color). */
+  tint?: string;
+}> = ({ title, subtitle, value, valueTone = 'muted', left, icon, iconColor, right, chevron, destructive, onPress, onLongPress, disabled, tint }) => {
   const content = (
     <>
       {left ?? (icon ? <IconTile icon={icon} color={destructive ? palette.danger : iconColor} size="sm" /> : null)}
@@ -494,6 +496,7 @@ export const Row: React.FC<{
     </>
   );
   const cls = 'flex-row items-center gap-3 px-4 min-h-[56px] py-2.5';
+  const tintStyle = tint ? { backgroundColor: `${tint}14` } : null;
   if (onPress || onLongPress) {
     return (
       <Pressable
@@ -501,13 +504,13 @@ export const Row: React.FC<{
         onLongPress={onLongPress}
         disabled={disabled}
         accessibilityRole="button"
-        style={({ pressed }) => [tw.style(cls), pressed ? tw`bg-slate-100 dark:bg-slate-800` : null, disabled ? tw`opacity-50` : null]}
+        style={({ pressed }) => [tw.style(cls), tintStyle, pressed ? tw`bg-slate-100 dark:bg-slate-800` : null, disabled ? tw`opacity-50` : null]}
       >
         {content}
       </Pressable>
     );
   }
-  return <View style={tw.style(cls)}>{content}</View>;
+  return <View style={[tw.style(cls), tintStyle]}>{content}</View>;
 };
 
 /** Row with a native switch. */

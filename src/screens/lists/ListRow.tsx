@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Ellipsis } from 'lucide-react-native';
 
-import { Badge, Btn, Card, IconTile, ProgressBar, Text, UserAvatar } from '../../design';
+import { Badge, Btn, Card, IconTile, palette, ProgressBar, Text, UserAvatar } from '../../design';
 import { formatMoney } from '../../logic/format';
 import { listProgress, shoppingTotals, taskBucket } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
@@ -64,8 +64,9 @@ export const ListRow: React.FC<{
 }> = ({ list, items, members, onPress, onMore }) => {
   const { percent } = listProgress(items);
   const shared = list.isShared !== false;
+  const color = list.color || palette.brandLight;
   return (
-    <Card onPress={onPress} onLongPress={onMore} className="gap-3">
+    <Card onPress={onPress} onLongPress={onMore} className="gap-3" style={{ backgroundColor: `${color}14`, borderColor: `${color}33` }}>
       <View style={tw`flex-row items-center gap-3`}>
         <IconTile icon={list.icon} color={list.color} />
         <View style={tw`flex-1 min-w-0`}>

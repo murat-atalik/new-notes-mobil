@@ -97,7 +97,12 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
                 const target = asset.targetAmount || 0;
                 const pct = target > 0 ? ((asset.currentAmount || 0) / target) * 100 : 0;
                 return (
-                  <Card key={asset.id} className="gap-3" onPress={() => navigation.navigate('AssetDetail', { assetId: asset.id })}>
+                  <Card
+                    key={asset.id}
+                    className="gap-3"
+                    onPress={() => navigation.navigate('AssetDetail', { assetId: asset.id })}
+                    style={{ backgroundColor: `${color}14`, borderColor: `${color}33` }}
+                  >
                     <View style={tw`flex-row items-center gap-3`}>
                       <IconTile emoji={asset.icon || meta.emoji} color={color} />
                       <View style={tw`flex-1 min-w-0`}>

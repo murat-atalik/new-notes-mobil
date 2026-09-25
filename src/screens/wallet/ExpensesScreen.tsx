@@ -142,6 +142,7 @@ export const ExpensesScreen: React.FC<RootScreenProps<'Expenses'>> = ({ navigati
                     subtitle={[e.categoryName, e.cardName || e.paymentMethod].filter(Boolean).join(' · ')}
                     value={formatMoney(e.amount, e.currency || 'TRY')}
                     valueTone="default"
+                    tint={meta.color}
                     onPress={() => navigation.navigate('ExpenseDetail', { expenseId: e.id })}
                     onLongPress={() => openMenu(e)}
                     right={

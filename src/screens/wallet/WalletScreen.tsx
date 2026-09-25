@@ -205,6 +205,7 @@ export const WalletScreen: React.FC = () => {
                   subtitle={expenseSubtitle(e)}
                   value={formatMoney(e.amount, e.currency || 'TRY')}
                   valueTone="default"
+                  tint={meta.color}
                   onPress={() => navigation.navigate('ExpenseDetail', { expenseId: e.id })}
                 />
               );
