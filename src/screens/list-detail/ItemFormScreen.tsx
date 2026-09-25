@@ -11,15 +11,16 @@ import {
   EmptyState,
   FieldLabel,
   FormScreen,
-  IconTile,
   Input,
   palette,
   Segmented,
+  SwatchField,
   Text,
   TextField,
   confirmAction,
   showToast,
   UserAvatar,
+  type SwatchOption,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { pickAndUploadPhoto } from '../../lib/photoPicker';
@@ -111,6 +112,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const valid = title.trim().length > 0;
   const step = stepFor(unit);
   const lineTotal = parseAmount(price) * quantity;
+  const categorySwatches: SwatchOption[] = categories.map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }));
 
   const save = () => {
     if (!valid) return;
@@ -377,32 +379,13 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
       ) : null}
 
       {categories.length ? (
-        <FieldLabel label="Kategori">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={tw`gap-2`}>
-            {categories.map((c) => {
-              const active = c.id === categoryId;
-              return (
-                <Pressable
-                  key={c.id}
-                  onPress={() => setCategoryId(c.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[
-                    tw`flex-row items-center gap-2 h-11 pl-1.5 pr-3.5 rounded-full border`,
-                    active
-                      ? { backgroundColor: `${c.color}22`, borderColor: c.color }
-                      : tw`bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800`,
-                  ]}
-                >
-                  <IconTile icon={c.icon} color={c.color} size="sm" />
-                  <Text variant="subhead" weight={active ? 'bold' : 'medium'} numberOfLines={1}>
-                    {c.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </FieldLabel>
+        <SwatchField
+          label="Kategori"
+          value={categoryId}
+          onChange={setCategoryId}
+          options={categorySwatches}
+          sheetTitle="Kategori seç"
+        />
       ) : null}
 
       {people.length > 1 ? (

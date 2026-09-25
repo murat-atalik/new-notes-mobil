@@ -21,7 +21,14 @@ export const PROVIDER_SUGGESTIONS: Record<PaymentCardType, string[]> = {
 };
 
 /** Same spend categories the web card spend form offers. */
-export const SPEND_CATEGORIES = ['Restoran & Yemek', 'Süpermarket & Gıda', 'Kahve & İçecek', 'Ulaşım & Yakıt', 'Giyim & Alışveriş', 'Diğer'];
+export const SPEND_CATEGORIES: { name: string; color: string; icon: string }[] = [
+  { name: 'Restoran & Yemek', color: '#f97316', icon: 'Utensils' },
+  { name: 'Süpermarket & Gıda', color: '#10b981', icon: 'ShoppingCart' },
+  { name: 'Kahve & İçecek', color: '#92400e', icon: 'Coffee' },
+  { name: 'Ulaşım & Yakıt', color: '#06b6d4', icon: 'Car' },
+  { name: 'Giyim & Alışveriş', color: '#ec4899', icon: 'ShoppingBag' },
+  { name: 'Diğer', color: '#64748b', icon: 'CircleDollarSign' },
+];
 
 /** Mixes a hex color toward black (`amount` 0–1). */
 export function darken(hex: string, amount = 0.45): string {

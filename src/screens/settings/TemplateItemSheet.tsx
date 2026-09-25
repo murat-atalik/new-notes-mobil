@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 
-import { Button, ChipRow, palette, Segmented, SelectField, Sheet, Text, TextField } from '../../design';
+import { Button, ChipRow, palette, Segmented, Sheet, SwatchField, Text, TextField, type SwatchOption } from '../../design';
 import { formatMoney, parseAmount } from '../../logic/format';
 import { PRIORITY_META } from '../../logic/selectors';
 import { tw } from '../../lib/tw';
 import { useAppStore } from '../../store/useAppStore';
-import type { ListType, TemplateItem } from '../../types';
+import type { Category, ListType, TemplateItem } from '../../types';
 
 const UNITS = ['adet', 'kg', 'g', 'lt', 'paket'] as const;
 type Priority = NonNullable<TemplateItem['priority']>;
@@ -38,10 +38,12 @@ export const TemplateItemSheet: React.FC<{
   return <Editor key={item.id} item={item} type={type} categories={categories.filter((c) => c.type === type)} onClose={onClose} onSave={onSave} />;
 };
 
+const DEFAULT_CATEGORY_SWATCH: SwatchOption = { value: '', label: 'Varsayılan', icon: 'Sparkles', color: palette.slate500 };
+
 const Editor: React.FC<{
   item: TemplateItem;
   type: ListType;
-  categories: { id: string; name: string }[];
+  categories: Category[];
   onClose: () => void;
   onSave: (item: TemplateItem) => void;
 }> = ({ item, type, categories, onClose, onSave }) => {
@@ -130,12 +132,13 @@ const Editor: React.FC<{
       ) : null}
 
       {categories.length > 0 ? (
-        <SelectField
+        <SwatchField
           label="Kategori"
           value={categoryId}
           onChange={setCategoryId}
+          options={[DEFAULT_CATEGORY_SWATCH, ...categories.map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }))]}
           placeholder="Varsayılan"
-          options={[{ value: '', label: 'Varsayılan' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+          sheetTitle="Kategori seç"
         />
       ) : null}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 
-import { AmountField, Card, ChipRow, DateField, EmptyState, FieldLabel, FormScreen, showToast, Text, TextField } from '../../design';
+import { AmountField, Card, DateField, EmptyState, FormScreen, showToast, SwatchField, Text, TextField, type SwatchOption } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { isCreditCard } from '../../logic/selectors';
 import { getCurrencySymbol } from '../../lib/currencyUnits';
@@ -20,7 +20,7 @@ export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>>
 
   const [amount, setAmount] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(SPEND_CATEGORIES[0]);
+  const [category, setCategory] = useState(SPEND_CATEGORIES[0].name);
   const [date, setDate] = useState(isoDate());
   const [note, setNote] = useState('');
 
@@ -37,6 +37,7 @@ export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>>
   const currency = credit ? 'TRY' : card.currency || 'TRY';
   const value = parseAmount(amount);
   const screenTitle = spend ? 'Harcama Ekle' : credit ? 'Borç Öde' : 'Bakiye Yükle';
+  const categorySwatches: SwatchOption[] = SPEND_CATEGORIES.map((c) => ({ value: c.name, label: c.name, icon: c.icon, color: c.color }));
 
   // Preview mirrors the store rules (spend: balance floors at 0 / debt grows; top-up on credit = payment).
   const debt = card.currentDebt || 0;
@@ -132,9 +133,7 @@ export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>>
             placeholder={card.type === 'FOOD_CARD' ? 'Örn. Öğle yemeği' : 'Örn. Market alışverişi'}
             returnKeyType="done"
           />
-          <FieldLabel label="Kategori">
-            <ChipRow options={SPEND_CATEGORIES.map((c) => ({ value: c, label: c }))} value={category} onChange={setCategory} />
-          </FieldLabel>
+          <SwatchField label="Kategori" value={category} onChange={setCategory} options={categorySwatches} sheetTitle="Kategori seç" />
           <DateField label="Tarih" value={date} onChange={setDate} />
         </>
       ) : null}
