@@ -87,7 +87,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const [priority, setPriority] = useState<Priority>(item?.priority ?? 'MEDIUM');
   const [dueDate, setDueDate] = useState(item?.dueDate?.split('T')[0] ?? '');
   const [content, setContent] = useState(item?.content ?? '');
-  const [purchasedQuantity, setPurchasedQuantity] = useState(item?.purchasedQuantity || 0);
+  const [savedAmount, setSavedAmount] = useState(formatPriceInput(item?.savedAmount));
   const [photos, setPhotos] = useState<string[]>(item?.photos ?? []);
   const [links, setLinks] = useState<string[]>(item?.links ?? []);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -124,13 +124,14 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
     if (isTodo) Object.assign(fields, { priority, dueDate: dueDate || undefined });
     if (isRoom) {
       const target = Math.max(quantity, 1);
-      const purchased = Math.min(purchasedQuantity, target);
+      const unitPrice = parseAmount(price);
+      const saved = parseAmount(savedAmount);
       Object.assign(fields, {
         quantity: target,
         unit,
-        price: parseAmount(price),
-        purchasedQuantity: purchased,
-        isCompleted: purchased >= target,
+        price: unitPrice,
+        savedAmount: saved,
+        isCompleted: unitPrice * target > 0 && saved >= unitPrice * target,
         photos: photos.filter(Boolean),
         links: links.map((l) => l.trim()).filter(Boolean),
       });
@@ -267,32 +268,28 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
 
       {isRoom ? (
         <Card className="gap-3">
-          <View style={tw`flex-row items-center justify-between`}>
-            <Text variant="body" weight="semibold">
-              Satın alınan
+          <View style={tw`flex-row items-center gap-3`}>
+            <Text variant="body" weight="semibold" className="flex-1">
+              Biriktirilen tutar
             </Text>
-            <View style={tw`flex-row items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1`}>
-              <Btn
-                onPress={() => setPurchasedQuantity((q) => Math.max(0, +(q - step).toFixed(2)))}
-                disabled={purchasedQuantity <= 0}
-                accessibilityLabel="Azalt"
-                className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 items-center justify-center"
-              >
-                <Minus size={20} color="#64748b" />
-              </Btn>
-              <Text variant="headline" className="min-w-[72px] text-center">{`${purchasedQuantity.toLocaleString('tr-TR')} ${unit}`}</Text>
-              <Btn
-                onPress={() => setPurchasedQuantity((q) => Math.min(quantity, +(q + step).toFixed(2)))}
-                disabled={purchasedQuantity >= quantity}
-                accessibilityLabel="Artır"
-                className="w-10 h-10 rounded-full bg-emerald-600 items-center justify-center"
-              >
-                <Plus size={20} color="#fff" />
-              </Btn>
+            <View style={tw`flex-row items-center h-11 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 min-w-[120px]`}>
+              <Text variant="body" tone="muted">
+                ₺
+              </Text>
+              <Input
+                value={savedAmount}
+                onChangeText={(t) => setSavedAmount(t.replace(/[^\d.,]/g, ''))}
+                placeholder="0"
+                keyboardType="decimal-pad"
+                accessibilityLabel="Biriktirilen tutar"
+                className="flex-1 text-[17px] font-semibold text-right ml-1"
+              />
             </View>
           </View>
           <Text variant="caption" tone="muted">
-            {`Hedeflenen ${quantity.toLocaleString('tr-TR')} ${unit} üzerinden ne kadarı alındı.`}
+            {lineTotal > 0
+              ? `Hedef ${formatMoney(lineTotal)} — bu ürünü almaya hazır olman için bu kadar biriktirmen gerekiyor. Gün gün eklemek için ürünü kaydettikten sonra listedeki "Para Ekle" butonunu kullan.`
+              : 'Hedef fiyat için yukarıdaki miktar ve birim fiyatı gir.'}
           </Text>
         </Card>
       ) : null}

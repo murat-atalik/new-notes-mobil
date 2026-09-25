@@ -60,44 +60,50 @@ export function shoppingTotals(items: ListItem[]) {
   return { pending, all, checked };
 }
 
-/** Target quantity for a Room product (falls back to 1, same as shopping items). */
-export function productTarget(item: ListItem): number {
-  return item.quantity || 1;
+/**
+ * A Room product isn't bought outright — money is saved toward it first (estimated
+ * unit price × target quantity), then it's bought once fully funded.
+ */
+export function productTargetCost(item: ListItem): number {
+  return (item.price || 0) * (item.quantity || 1);
 }
 
-/** How many of the target quantity have actually been bought, clamped to the target. */
-export function productPurchased(item: ListItem): number {
-  return Math.min(item.purchasedQuantity || 0, productTarget(item));
+/** Money saved toward a product so far. Not clamped to the target — saving past it is fine. */
+export function productSaved(item: ListItem): number {
+  return item.savedAmount || 0;
 }
 
-/** 0–100, how much of one product's target quantity has been bought. */
+/** 0–100, how much of a product's target cost has been saved. */
 export function productProgressPercent(item: ListItem): number {
-  const target = productTarget(item);
-  return target > 0 ? Math.round((productPurchased(item) / target) * 100) : 0;
+  const target = productTargetCost(item);
+  return target > 0 ? Math.min(100, Math.round((productSaved(item) / target) * 100)) : 0;
+}
+
+export function isProductFunded(item: ListItem): boolean {
+  const target = productTargetCost(item);
+  return target > 0 && productSaved(item) >= target;
 }
 
 /**
- * Room progress across all its products, weighted by value (estimated price × quantity)
- * rather than a plain average of percentages, so one expensive unfinished product pulls
- * the room total down more than a cheap one.
+ * Room progress across all its products, weighted by value (target cost) rather than a
+ * plain average of percentages, so one expensive unfunded product pulls the room total
+ * down more than a cheap one.
  */
 export function roomProgress(items: ListItem[]) {
   let targetValue = 0;
-  let boughtValue = 0;
+  let savedValue = 0;
   let doneCount = 0;
   for (const item of items) {
-    const price = item.price || 0;
-    const target = productTarget(item);
-    targetValue += price * target;
-    boughtValue += price * productPurchased(item);
-    if (productPurchased(item) >= target) doneCount += 1;
+    targetValue += productTargetCost(item);
+    savedValue += productSaved(item); // real money saved, not capped — can exceed the target
+    if (isProductFunded(item)) doneCount += 1;
   }
   return {
     totalCount: items.length,
     doneCount,
     targetValue,
-    boughtValue,
-    percent: targetValue > 0 ? Math.round((boughtValue / targetValue) * 100) : items.length ? Math.round((doneCount / items.length) * 100) : 0,
+    savedValue,
+    percent: targetValue > 0 ? Math.min(100, Math.round((savedValue / targetValue) * 100)) : items.length ? Math.round((doneCount / items.length) * 100) : 0,
   };
 }
 

@@ -47,8 +47,9 @@ export interface ListItem {
   completedBy?: string; // user id
   completedAt?: string;
   // Products in a Room (type ROOM on the parent list) reuse `price`/`quantity` as the
-  // estimated unit price and target quantity, and add:
-  purchasedQuantity?: number; // how many of `quantity` have actually been bought
+  // estimated unit price and target quantity (together the target cost to save up for),
+  // and add:
+  savedAmount?: number; // money saved so far toward price × quantity
   photos?: string[]; // product photo URLs
   links?: string[]; // shopping links
   createdAt: string;

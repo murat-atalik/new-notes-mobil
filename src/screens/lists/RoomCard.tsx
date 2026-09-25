@@ -17,11 +17,11 @@ export const RoomCard: React.FC<{
   onPress: () => void;
   onMore: () => void;
 }> = ({ room, items, members, onPress, onMore }) => {
-  const { percent, boughtValue, targetValue, totalCount } = roomProgress(items);
+  const { percent, savedValue, targetValue, totalCount } = roomProgress(items);
   const shared = room.isShared !== false;
   const subtitle = totalCount
     ? targetValue > 0
-      ? `${totalCount} ürün · ${formatMoney(boughtValue)} / ${formatMoney(targetValue)}`
+      ? `${totalCount} ürün · ${formatMoney(savedValue)} / ${formatMoney(targetValue)} birikti`
       : `${totalCount} ürün`
     : 'Henüz ürün yok';
 
