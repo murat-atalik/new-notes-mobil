@@ -56,5 +56,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Oda ve ürün fotoğrafı eklemek için fotoğraflarına erişim gerekiyor.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Oda ve ürün fotoğrafı çekmek için kameraya erişim gerekiyor.</string>
 </dict>
 </plist>

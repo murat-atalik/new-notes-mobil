@@ -21,9 +21,11 @@ import { filterByScope, listMembership, useMyLists, type Scope } from '../../log
 import { ic, tw } from '../../lib/tw';
 import { useAppNavigation, type TabParamList } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
-import type { AppList, ListItem, ListType, User } from '../../types';
+import type { AnyListType, AppList, ListItem, User } from '../../types';
 import { LIST_TYPE_META, LIST_TYPES } from './listMeta';
 import { ListRow } from './ListRow';
+import { RoomCard } from './RoomCard';
+import { ROOM_META } from './roomMeta';
 
 const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
   { value: 'ALL', label: 'Tümü' },
@@ -47,7 +49,7 @@ export const ListsScreen: React.FC = () => {
   const deleteList = useAppStore((s) => s.deleteList);
   const leaveList = useAppStore((s) => s.leaveList);
 
-  const [type, setType] = useState<ListType>(paramType ?? 'SHOPPING');
+  const [type, setType] = useState<AnyListType>(paramType ?? 'SHOPPING');
   const [lastParam, setLastParam] = useState(paramType);
   // Honor a new `type` route param (e.g. jump from Home) while keeping the user's own choice otherwise.
   if (paramType !== lastParam) {
@@ -75,7 +77,7 @@ export const ListsScreen: React.FC = () => {
   }, [users, currentUser]);
 
   const counts = useMemo(() => {
-    const c: Record<ListType, number> = { SHOPPING: 0, TODO: 0, NOTE: 0 };
+    const c: Record<AnyListType, number> = { SHOPPING: 0, TODO: 0, NOTE: 0, ROOM: 0 };
     for (const l of lists) c[l.type] += 1;
     return c;
   }, [lists]);
@@ -147,7 +149,7 @@ export const ListsScreen: React.FC = () => {
     showActionSheet({ title: list.title, options });
   };
 
-  const meta = LIST_TYPE_META[type];
+  const meta = type === 'ROOM' ? ROOM_META : LIST_TYPE_META[type];
   const filtering = query.trim().length > 0 || scope !== 'ALL';
 
   return (
@@ -159,7 +161,10 @@ export const ListsScreen: React.FC = () => {
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
     >
       <Segmented
-        options={LIST_TYPES.map((t) => ({ value: t, label: LIST_TYPE_META[t].label, count: counts[t] }))}
+        options={[
+          ...LIST_TYPES.map((t) => ({ value: t as AnyListType, label: LIST_TYPE_META[t].label, count: counts[t] })),
+          { value: 'ROOM' as AnyListType, label: ROOM_META.label, count: counts.ROOM },
+        ]}
         value={type}
         onChange={setType}
       />
@@ -192,16 +197,17 @@ export const ListsScreen: React.FC = () => {
 
       {visible.length ? (
         <View style={tw`gap-3`}>
-          {visible.map((list) => (
-            <ListRow
-              key={list.id}
-              list={list}
-              items={itemsByList.get(list.id) ?? []}
-              members={list.members.map((m) => userById.get(m.userId)).filter((u): u is User => !!u)}
-              onPress={() => navigation.navigate('ListDetail', { listId: list.id })}
-              onMore={() => openActions(list)}
-            />
-          ))}
+          {visible.map((list) => {
+            const members = list.members.map((m) => userById.get(m.userId)).filter((u): u is User => !!u);
+            const rowProps = {
+              key: list.id,
+              items: itemsByList.get(list.id) ?? [],
+              members,
+              onPress: () => navigation.navigate('ListDetail', { listId: list.id }),
+              onMore: () => openActions(list),
+            };
+            return list.type === 'ROOM' ? <RoomCard {...rowProps} room={list} /> : <ListRow {...rowProps} list={list} />;
+          })}
           <Text variant="caption" tone="faint" className="text-center pt-1">
             Daha fazla işlem için listeye basılı tut
           </Text>

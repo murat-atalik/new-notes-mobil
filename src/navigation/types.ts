@@ -1,12 +1,12 @@
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 
-import type { ListType } from '../types';
+import type { AnyListType, ListType } from '../types';
 
 /** Bottom tabs. The center "+" button is not a route — it opens `QuickAddSheet`. */
 export type TabParamList = {
   Home: undefined;
-  Lists: { type?: ListType } | undefined;
+  Lists: { type?: AnyListType } | undefined;
   Wallet: undefined;
   Family: undefined;
 };
@@ -20,10 +20,12 @@ export type AuthStackParamList = {
 /** Everything pushed on top of the tabs. Screens marked (modal) use `presentation: 'modal'`. */
 export type RootStackParamList = {
   Tabs: { screen?: keyof TabParamList; params?: TabParamList[keyof TabParamList] } | undefined;
+  /** Shown once, right after registration, before Tabs. */
+  Onboarding: undefined;
 
   // Lists
   ListDetail: { listId: string };
-  ListForm: { listId?: string; type?: ListType }; // (modal) create / edit
+  ListForm: { listId?: string; type?: AnyListType }; // (modal) create / edit
   ListShare: { listId: string }; // (modal) invite code, members, invite by username
   JoinList: undefined; // (modal) join by invite code
   ItemForm: { listId: string; itemId?: string }; // (modal)

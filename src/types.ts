@@ -1,4 +1,6 @@
 export type ListType = 'SHOPPING' | 'TODO' | 'NOTE';
+/** A list can also be a Room (Oda): a shareable container of products to buy for it. */
+export type AnyListType = ListType | 'ROOM';
 
 export type Role = 'OWNER' | 'EDITOR';
 
@@ -44,6 +46,11 @@ export interface ListItem {
   assignedTo?: string; // user id
   completedBy?: string; // user id
   completedAt?: string;
+  // Products in a Room (type ROOM on the parent list) reuse `price`/`quantity` as the
+  // estimated unit price and target quantity, and add:
+  purchasedQuantity?: number; // how many of `quantity` have actually been bought
+  photos?: string[]; // product photo URLs
+  links?: string[]; // shopping links
   createdAt: string;
 }
 
@@ -57,7 +64,9 @@ export interface AppList {
   id: string;
   title: string;
   description?: string;
-  type: ListType;
+  type: AnyListType;
+  /** Room cover photo URL (ROOM lists only). */
+  coverPhoto?: string;
   ownerId: string;
   familyId?: string; // Aile kimliği
   members: ListMember[];

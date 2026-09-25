@@ -5,7 +5,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({}));
 jest.mock('../../store/useAppStore', () => ({ useAppStore: () => undefined }));
 
 import type { ExpenseLog, ListItem, PaymentCard } from '../../types';
-import { categoryBreakdown, groupByDay, listProgress, netWorth, shoppingTotals, sumTRY, taskBucket } from '../selectors';
+import {
+  categoryBreakdown,
+  groupByDay,
+  listProgress,
+  netWorth,
+  productProgressPercent,
+  roomProgress,
+  shoppingTotals,
+  sumTRY,
+  taskBucket,
+} from '../selectors';
 
 const item = (over: Partial<ListItem>): ListItem => ({
   id: 'i', listId: 'l', title: 't', isCompleted: false, price: 0, quantity: 1, unit: 'adet', categoryId: '', createdAt: '', ...over,
@@ -18,6 +28,22 @@ describe('selectors', () => {
     const items = [item({ price: 10, quantity: 2 }), item({ price: 5, isCompleted: true })];
     expect(listProgress(items)).toEqual({ total: 2, done: 1, pending: 1, percent: 50 });
     expect(shoppingTotals(items)).toEqual({ pending: 20, all: 25, checked: 5 });
+  });
+
+  it('computes per-product and room-level purchase progress', () => {
+    // 2 of 4 bought at 100 each (half done), 1 of 1 bought at 50 (fully done).
+    const chair = item({ title: 'Sandalye', price: 100, quantity: 4, purchasedQuantity: 2 });
+    const lamp = item({ title: 'Lamba', price: 50, quantity: 1, purchasedQuantity: 1 });
+    expect(productProgressPercent(chair)).toBe(50);
+    expect(productProgressPercent(lamp)).toBe(100);
+    // Value-weighted: (200 + 50) / (400 + 50) = 250/450 ≈ 56%.
+    expect(roomProgress([chair, lamp])).toEqual({ totalCount: 2, doneCount: 1, targetValue: 450, boughtValue: 250, percent: 56 });
+  });
+
+  it('clamps purchased quantity to the target and handles an empty room', () => {
+    const over = item({ price: 10, quantity: 2, purchasedQuantity: 99 });
+    expect(productProgressPercent(over)).toBe(100);
+    expect(roomProgress([])).toEqual({ totalCount: 0, doneCount: 0, targetValue: 0, boughtValue: 0, percent: 0 });
   });
 
   it('buckets tasks by due date', () => {

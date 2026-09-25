@@ -206,6 +206,10 @@ async function apiCall(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELET
 interface AppState {
   // Authentication & Session
   isAuthenticated: boolean;
+  /** True right after a successful registration (not persisted); tells AppStack to open
+   * the onboarding screen instead of Tabs. Cleared once onboarding is left. */
+  justRegistered: boolean;
+  setJustRegistered: (value: boolean) => void;
   currentUser: User;
   users: User[];
   authModalOpen: boolean;
@@ -828,6 +832,8 @@ export const useAppStore = create<AppState>((set, get) => {
 
     // Auth initial states
     isAuthenticated: initialPersisted.isAuthenticated,
+    justRegistered: false,
+    setJustRegistered: (value) => set({ justRegistered: value }),
     currentUser: initialPersisted.currentUser,
     users: initialPersisted.users,
     authModalOpen: !initialPersisted.isAuthenticated,
@@ -1068,6 +1074,7 @@ export const useAppStore = create<AppState>((set, get) => {
         currentUser: user,
         users: [user, ...s.users.filter((u) => u.id !== user.id)],
         isAuthenticated: true,
+        justRegistered: false,
         authModalOpen: false,
       }));
       persist();
@@ -1116,6 +1123,7 @@ export const useAppStore = create<AppState>((set, get) => {
         users: [user, ...s.users.filter((u) => u.id !== user.id)],
         currentUser: user,
         isAuthenticated: true,
+        justRegistered: true,
         authModalOpen: false,
       }));
       persist();
@@ -1139,6 +1147,7 @@ export const useAppStore = create<AppState>((set, get) => {
       mobileApi.logout();
       set({
         isAuthenticated: false,
+        justRegistered: false,
         currentUser: DEFAULT_ANONYMOUS_USER,
         authModalOpen: true,
         authModalMode: 'login',

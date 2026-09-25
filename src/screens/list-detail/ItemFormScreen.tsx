@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { FileQuestion, Minus, Plus, Trash2 } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Camera, FileQuestion, Link2, Minus, Plus, Trash2, X as XIcon } from 'lucide-react-native';
 
 import {
   Btn,
@@ -22,6 +22,7 @@ import {
   UserAvatar,
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
+import { pickAndUploadPhoto } from '../../lib/photoPicker';
 import { tw } from '../../lib/tw';
 import type { RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -70,7 +71,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const { listId, itemId } = route.params;
   const list = useAccessibleList(listId);
   const item = useAppStore((s) => (itemId ? s.items.find((i) => i.id === itemId) : undefined));
-  const categories = useCategoriesFor(list?.type);
+  const categories = useCategoriesFor(list?.type === 'ROOM' ? undefined : list?.type);
   const people = usePeople(list);
   const addItem = useAppStore((s) => s.addItem);
   const updateItem = useAppStore((s) => s.updateItem);
@@ -86,6 +87,10 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const [priority, setPriority] = useState<Priority>(item?.priority ?? 'MEDIUM');
   const [dueDate, setDueDate] = useState(item?.dueDate?.split('T')[0] ?? '');
   const [content, setContent] = useState(item?.content ?? '');
+  const [purchasedQuantity, setPurchasedQuantity] = useState(item?.purchasedQuantity || 0);
+  const [photos, setPhotos] = useState<string[]>(item?.photos ?? []);
+  const [links, setLinks] = useState<string[]>(item?.links ?? []);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   if (!list || (isEdit && !item)) {
     return (
@@ -102,6 +107,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
 
   const isShopping = list.type === 'SHOPPING';
   const isTodo = list.type === 'TODO';
+  const isRoom = list.type === 'ROOM';
   const valid = title.trim().length > 0;
   const step = stepFor(unit);
   const lineTotal = parseAmount(price) * quantity;
@@ -116,6 +122,19 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
     };
     if (isShopping) Object.assign(fields, { quantity, unit, price: parseAmount(price) });
     if (isTodo) Object.assign(fields, { priority, dueDate: dueDate || undefined });
+    if (isRoom) {
+      const target = Math.max(quantity, 1);
+      const purchased = Math.min(purchasedQuantity, target);
+      Object.assign(fields, {
+        quantity: target,
+        unit,
+        price: parseAmount(price),
+        purchasedQuantity: purchased,
+        isCompleted: purchased >= target,
+        photos: photos.filter(Boolean),
+        links: links.map((l) => l.trim()).filter(Boolean),
+      });
+    }
 
     if (item) {
       // Send explicit empty values so cleared fields are cleared on the server too.
@@ -158,7 +177,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
     else if (q === 'none') setDueDate('');
   };
 
-  const noun = isShopping ? 'Ürün' : isTodo ? 'Görev' : 'Not';
+  const noun = isShopping || isRoom ? 'Ürün' : isTodo ? 'Görev' : 'Not';
 
   return (
     <FormScreen
@@ -168,19 +187,19 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
       footer={isEdit ? <Button title="Sil" icon={Trash2} variant="dangerTinted" onPress={remove} fullWidth /> : undefined}
     >
       <TextField
-        label={isShopping ? 'Ürün adı' : 'Başlık'}
+        label={isShopping || isRoom ? 'Ürün adı' : 'Başlık'}
         value={title}
         onChangeText={setTitle}
-        placeholder={isShopping ? 'Örn. Süt' : 'Örn. Faturayı öde'}
+        placeholder={isShopping ? 'Örn. Süt' : isRoom ? 'Örn. Koltuk' : 'Örn. Faturayı öde'}
         autoFocus={!isEdit}
         returnKeyType="done"
       />
 
-      {isShopping ? (
+      {isShopping || isRoom ? (
         <Card className="gap-4">
           <View style={tw`flex-row items-center justify-between`}>
             <Text variant="body" weight="semibold">
-              Miktar
+              {isRoom ? 'Hedeflenen miktar' : 'Miktar'}
             </Text>
             <View style={tw`flex-row items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1`}>
               <Btn
@@ -213,7 +232,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
           <View style={tw`h-px bg-slate-100 dark:bg-slate-800`} />
           <View style={tw`flex-row items-center gap-3`}>
             <Text variant="body" weight="semibold" className="flex-1">
-              Birim fiyat
+              {isRoom ? 'Tahmini birim fiyat' : 'Birim fiyat'}
             </Text>
             <View style={tw`flex-row items-center h-11 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 min-w-[120px]`}>
               <Text variant="body" tone="muted">
@@ -232,7 +251,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
           {lineTotal > 0 ? (
             <View style={tw`flex-row justify-between`}>
               <Text variant="subhead" tone="muted">
-                Satır toplamı
+                {isRoom ? 'Hedef toplam' : 'Satır toplamı'}
               </Text>
               <Text variant="subhead" weight="bold" tone="brand">
                 {formatMoney(lineTotal)}
@@ -240,10 +259,112 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
             </View>
           ) : (
             <Text variant="caption" tone="muted">
-              Fiyat isteğe bağlı — sepet toplamında kullanılır.
+              {isRoom ? 'Fiyat isteğe bağlı — oda bütçesinde kullanılır.' : 'Fiyat isteğe bağlı — sepet toplamında kullanılır.'}
             </Text>
           )}
         </Card>
+      ) : null}
+
+      {isRoom ? (
+        <Card className="gap-3">
+          <View style={tw`flex-row items-center justify-between`}>
+            <Text variant="body" weight="semibold">
+              Satın alınan
+            </Text>
+            <View style={tw`flex-row items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-full p-1`}>
+              <Btn
+                onPress={() => setPurchasedQuantity((q) => Math.max(0, +(q - step).toFixed(2)))}
+                disabled={purchasedQuantity <= 0}
+                accessibilityLabel="Azalt"
+                className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 items-center justify-center"
+              >
+                <Minus size={20} color="#64748b" />
+              </Btn>
+              <Text variant="headline" className="min-w-[72px] text-center">{`${purchasedQuantity.toLocaleString('tr-TR')} ${unit}`}</Text>
+              <Btn
+                onPress={() => setPurchasedQuantity((q) => Math.min(quantity, +(q + step).toFixed(2)))}
+                disabled={purchasedQuantity >= quantity}
+                accessibilityLabel="Artır"
+                className="w-10 h-10 rounded-full bg-emerald-600 items-center justify-center"
+              >
+                <Plus size={20} color="#fff" />
+              </Btn>
+            </View>
+          </View>
+          <Text variant="caption" tone="muted">
+            {`Hedeflenen ${quantity.toLocaleString('tr-TR')} ${unit} üzerinden ne kadarı alındı.`}
+          </Text>
+        </Card>
+      ) : null}
+
+      {isRoom ? (
+        <FieldLabel label="Fotoğraflar">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={tw`gap-2 px-1`}>
+            {photos.map((uri, index) => (
+              <View key={`${uri}-${index}`}>
+                <Image source={{ uri }} style={tw`w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800`} />
+                <Btn
+                  onPress={() => setPhotos((prev) => prev.filter((_, i) => i !== index))}
+                  accessibilityLabel="Fotoğrafı kaldır"
+                  className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-slate-900 items-center justify-center"
+                >
+                  <XIcon size={12} color="#fff" />
+                </Btn>
+              </View>
+            ))}
+            <Pressable
+              onPress={() => pickAndUploadPhoto((url) => setPhotos((prev) => [...prev, url]), () => setUploadingPhoto(true), () => setUploadingPhoto(false))}
+              accessibilityRole="button"
+              accessibilityLabel="Fotoğraf ekle"
+              style={tw`w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700`}
+            >
+              <Camera size={22} color="#94a3b8" />
+            </Pressable>
+          </ScrollView>
+          {uploadingPhoto ? (
+            <Text variant="caption" tone="muted" className="px-1 pt-1">
+              Yükleniyor…
+            </Text>
+          ) : null}
+        </FieldLabel>
+      ) : null}
+
+      {isRoom ? (
+        <FieldLabel label="Alışveriş linkleri">
+          <View style={tw`gap-2`}>
+            {links.map((link, index) => (
+              <View key={index} style={tw`flex-row items-center gap-2`}>
+                <View style={tw`flex-1`}>
+                  <TextField
+                    value={link}
+                    onChangeText={(t) => setLinks((prev) => prev.map((l, i) => (i === index ? t : l)))}
+                    placeholder="https://…"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                  />
+                </View>
+                <Btn
+                  onPress={() => setLinks((prev) => prev.filter((_, i) => i !== index))}
+                  accessibilityLabel="Linki kaldır"
+                  className="w-11 h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800"
+                >
+                  <XIcon size={18} color="#64748b" />
+                </Btn>
+              </View>
+            ))}
+            <Btn
+              onPress={() => setLinks((prev) => [...prev, ''])}
+              accessibilityLabel="Link ekle"
+              className="flex-row items-center gap-2 h-11 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 self-start"
+            >
+              <Link2 size={16} color={palette.slate500} />
+              <Text variant="subhead" weight="semibold">
+                Link ekle
+              </Text>
+            </Btn>
+          </View>
+        </FieldLabel>
       ) : null}
 
       {isTodo ? (

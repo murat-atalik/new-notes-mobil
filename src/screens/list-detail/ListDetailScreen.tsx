@@ -18,6 +18,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { listSubtitle, splitTitles, useAccessibleList, useCategoriesFor } from './helpers';
 import { NotesContent } from './NotesContent';
 import { QuickAddBar } from './parts';
+import { RoomContent } from './RoomContent';
 import { ShoppingContent } from './ShoppingContent';
 import { TodoContent } from './TodoContent';
 
@@ -25,7 +26,7 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
   const { listId } = route.params;
   const list = useAccessibleList(listId);
   const items = useListItems(listId);
-  const categories = useCategoriesFor(list?.type);
+  const categories = useCategoriesFor(list?.type === 'ROOM' ? undefined : list?.type);
   const currentUser = useAppStore((s) => s.currentUser);
   const addItem = useAppStore((s) => s.addItem);
   const bulkAddItems = useAppStore((s) => s.bulkAddItems);
@@ -89,14 +90,14 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
 
   const openMenu = () => {
     const options: ActionSheetOption[] = [{ label: 'Listeyi Düzenle', icon: Pencil, onPress: () => navigation.navigate('ListForm', { listId: list.id }) }];
-    if (list.type !== 'NOTE' && items.length > 0) {
+    if (list.type !== 'NOTE' && list.type !== 'ROOM' && items.length > 0) {
       options.push(
         allDone
           ? { label: 'Tümünü kaldır', icon: Undo2, onPress: () => unmarkAll(list.id) }
           : { label: 'Tümünü işaretle', icon: CheckCheck, onPress: () => markAll(list.id) },
       );
     }
-    if (list.type !== 'NOTE' && completedCount > 0) {
+    if (list.type !== 'NOTE' && list.type !== 'ROOM' && completedCount > 0) {
       options.push({
         label: 'Tamamlananları temizle',
         icon: Eraser,
@@ -155,8 +156,9 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
   );
 
   // Checkout lives in the shopping summary card; the footer is only the capture bar.
+  // Room products need price/quantity/photos up front, so they get a full form via the FAB below.
   const footer =
-    list.type === 'NOTE' ? undefined : (
+    list.type === 'NOTE' || list.type === 'ROOM' ? undefined : (
       <QuickAddBar placeholder={list.type === 'SHOPPING' ? 'Ürün ekle… (virgülle birden fazla)' : 'Görev ekle…'} onSubmit={quickAdd} inputRef={inputRef} />
     );
 
@@ -170,11 +172,18 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
       footer={footer}
       refreshing={refreshing}
       onRefresh={onRefresh}
-      overlay={list.type === 'NOTE' ? <FAB icon={Plus} label="Yeni Not" onPress={() => navigation.navigate('NoteEditor', { listId: list.id })} /> : undefined}
+      overlay={
+        list.type === 'NOTE' ? (
+          <FAB icon={Plus} label="Yeni Not" onPress={() => navigation.navigate('NoteEditor', { listId: list.id })} />
+        ) : list.type === 'ROOM' ? (
+          <FAB icon={Plus} label="Ürün Ekle" onPress={() => navigation.navigate('ItemForm', { listId: list.id })} />
+        ) : undefined
+      }
     >
       {list.type === 'SHOPPING' ? <ShoppingContent listId={list.id} items={items} onAddFocus={focusInput} /> : null}
       {list.type === 'TODO' ? <TodoContent listId={list.id} items={items} onAddFocus={focusInput} /> : null}
       {list.type === 'NOTE' ? <NotesContent listId={list.id} items={items} /> : null}
+      {list.type === 'ROOM' ? <RoomContent listId={list.id} items={items} /> : null}
     </StackScreen>
   );
 };

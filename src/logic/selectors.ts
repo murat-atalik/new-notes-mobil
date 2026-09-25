@@ -60,6 +60,47 @@ export function shoppingTotals(items: ListItem[]) {
   return { pending, all, checked };
 }
 
+/** Target quantity for a Room product (falls back to 1, same as shopping items). */
+export function productTarget(item: ListItem): number {
+  return item.quantity || 1;
+}
+
+/** How many of the target quantity have actually been bought, clamped to the target. */
+export function productPurchased(item: ListItem): number {
+  return Math.min(item.purchasedQuantity || 0, productTarget(item));
+}
+
+/** 0–100, how much of one product's target quantity has been bought. */
+export function productProgressPercent(item: ListItem): number {
+  const target = productTarget(item);
+  return target > 0 ? Math.round((productPurchased(item) / target) * 100) : 0;
+}
+
+/**
+ * Room progress across all its products, weighted by value (estimated price × quantity)
+ * rather than a plain average of percentages, so one expensive unfinished product pulls
+ * the room total down more than a cheap one.
+ */
+export function roomProgress(items: ListItem[]) {
+  let targetValue = 0;
+  let boughtValue = 0;
+  let doneCount = 0;
+  for (const item of items) {
+    const price = item.price || 0;
+    const target = productTarget(item);
+    targetValue += price * target;
+    boughtValue += price * productPurchased(item);
+    if (productPurchased(item) >= target) doneCount += 1;
+  }
+  return {
+    totalCount: items.length,
+    doneCount,
+    targetValue,
+    boughtValue,
+    percent: targetValue > 0 ? Math.round((boughtValue / targetValue) * 100) : items.length ? Math.round((doneCount / items.length) * 100) : 0,
+  };
+}
+
 export function filterByScope(lists: AppList[], scope: Scope, user: User): AppList[] {
   if (scope === 'ALL') return lists;
   return lists.filter((l) => (scope === 'SHARED' ? isFamilyListForUser(l, user) : l.isShared === false));

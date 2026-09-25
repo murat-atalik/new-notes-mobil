@@ -13,6 +13,7 @@ import { tw } from './src/lib/tw';
 import { TabBar } from './src/navigation/TabBar';
 import type { AuthStackParamList, RootStackParamList, TabParamList } from './src/navigation/types';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
+import { OnboardingScreen } from './src/screens/auth/OnboardingScreen';
 import { RegisterScreen } from './src/screens/auth/RegisterScreen';
 import { WelcomeScreen } from './src/screens/auth/WelcomeScreen';
 import { CardDetailScreen } from './src/screens/cards/CardDetailScreen';
@@ -78,6 +79,7 @@ const T = {
   Welcome: withTheme(WelcomeScreen),
   Login: withTheme(LoginScreen),
   Register: withTheme(RegisterScreen),
+  Onboarding: withTheme(OnboardingScreen),
   ListDetail: withTheme(ListDetailScreen),
   ListForm: withTheme(ListFormScreen),
   ListShare: withTheme(ListShareScreen),
@@ -121,9 +123,14 @@ function MainTabs() {
 }
 
 function AppStack() {
+  // Registration lands here first (see `justRegistered` in the store); a normal login
+  // goes straight to Tabs. Read once per mount — Onboarding itself navigates away with
+  // `replace`, so this never needs to react to the flag changing mid-session.
+  const [initialRoute] = useState<'Tabs' | 'Onboarding'>(useAppStore.getState().justRegistered ? 'Onboarding' : 'Tabs');
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={MainTabs} />
+      <Stack.Screen name="Onboarding" component={T.Onboarding} />
 
       <Stack.Screen name="ListDetail" component={T.ListDetail} />
       <Stack.Screen name="ListForm" component={T.ListForm} options={modal} />
