@@ -23,6 +23,7 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
   const navigation = useAppNavigation();
   const { cards, savings, rates } = useFinance();
   const syncWithServer = useAppStore((s) => s.syncWithServer);
+  const exchangeRatesDate = useAppStore((s) => s.exchangeRatesDate);
   const [refreshing, setRefreshing] = useState(false);
 
   const worth = netWorth(cards, savings, rates);
@@ -88,6 +89,37 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
         />
       ) : (
         <>
+          {rateKeys.length ? (
+            <Card className="gap-2">
+              <View style={tw`flex-row items-center justify-between`}>
+                <Text variant="footnote" tone="muted" weight="semibold">
+                  Güncel kurlar
+                </Text>
+                {exchangeRatesDate ? (
+                  <Text variant="caption" tone="faint">
+                    {exchangeRatesDate}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={tw`flex-row flex-wrap gap-2`}>
+                {rateKeys.map((key) => {
+                  const cfg = getCurrencyUnitConfig(key);
+                  const rate = getCurrencyRateInTRY(key, rates);
+                  return (
+                    <View key={key} style={[tw`flex-row items-center gap-1.5 px-3 h-9 rounded-full`, { backgroundColor: `${cfg.color}14` }]}>
+                      <Text variant="caption" weight="bold" tone="muted">
+                        {`1 ${getCurrencySymbol(key)}`}
+                      </Text>
+                      <Text variant="caption" weight="bold" style={{ color: cfg.color }}>
+                        {formatMoney(rate, 'TRY', 2)}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </Card>
+          ) : null}
+
           <Card className="gap-4">
             <View style={tw`gap-0.5`}>
               <Text variant="footnote" tone="muted" weight="semibold">
@@ -102,14 +134,7 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
                 </Text>
               ) : null}
             </View>
-            <View style={tw`flex-row gap-4`}>
-              <View style={tw`flex-1`}>
-                <Stat label="Net varlık" value={formatMoney(worth.total)} tone={worth.total >= 0 ? 'success' : 'danger'} caption="Likit + birikim − kredi borcu" />
-              </View>
-              <View style={tw`flex-1`}>
-                <Stat label="Varlık sayısı" value={String(savings.length + bankCards.length)} caption={`${allocation.length} farklı tür`} />
-              </View>
-            </View>
+            <Stat label="Varlık sayısı" value={String(savings.length + bankCards.length)} caption={`${allocation.length} farklı tür`} />
 
             {allocTotal > 0 ? (
               <View style={tw`gap-3`}>
@@ -127,30 +152,6 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
                       </Text>
                     </View>
                   ))}
-                </View>
-              </View>
-            ) : null}
-
-            {rateKeys.length ? (
-              <View style={tw`gap-2 pt-1 border-t border-slate-100 dark:border-slate-800`}>
-                <Text variant="caption" tone="muted" weight="semibold" className="pt-2">
-                  Güncel kurlar
-                </Text>
-                <View style={tw`flex-row flex-wrap gap-2`}>
-                  {rateKeys.map((key) => {
-                    const cfg = getCurrencyUnitConfig(key);
-                    const rate = getCurrencyRateInTRY(key, rates);
-                    return (
-                      <View key={key} style={[tw`flex-row items-center gap-1.5 px-3 h-9 rounded-full`, { backgroundColor: `${cfg.color}14` }]}>
-                        <Text variant="caption" weight="bold" tone="muted">
-                          {`1 ${getCurrencySymbol(key)}`}
-                        </Text>
-                        <Text variant="caption" weight="bold" style={{ color: cfg.color }}>
-                          {formatMoney(rate, 'TRY', 2)}
-                        </Text>
-                      </View>
-                    );
-                  })}
                 </View>
               </View>
             ) : null}

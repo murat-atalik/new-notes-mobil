@@ -910,6 +910,9 @@ export const useAppStore = create<AppState>((set, get) => {
       if (!get().isAuthenticated || get().currentUser.id === 'guest') return { success: false, error: 'Oturum yok' };
       if (!silent) set({ isSyncing: true });
       try {
+        // Fire-and-forget: the server already caches rates for the day, this just makes sure
+        // a long-lived session (open across midnight) picks up the new day's rates on refresh.
+        get().fetchDailyExchangeRates();
         return await applyBootstrap();
       } finally {
         set({ isSyncing: false });
