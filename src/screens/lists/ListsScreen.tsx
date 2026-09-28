@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import { Copy, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, X } from 'lucide-react-native';
+import { Copy, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
 
 import {
   ChipRow,
@@ -29,11 +29,13 @@ import { ROOM_META } from './roomMeta';
 import { WeightCard } from './WeightCard';
 import { WEIGHT_META } from './weightMeta';
 
-const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
-  { value: 'ALL', label: 'Tümü' },
-  { value: 'SHARED', label: 'Aile' },
-  { value: 'PERSONAL', label: 'Kişisel' },
-];
+// Cycling order for the header scope toggle: Hepsi → Aile → Kişisel → Hepsi …
+const SCOPE_ORDER: Scope[] = ['ALL', 'SHARED', 'PERSONAL'];
+const SCOPE_META: Record<Scope, { label: string; icon: typeof Users2 }> = {
+  ALL: { label: 'Hepsi', icon: Users2 },
+  SHARED: { label: 'Aile', icon: Users },
+  PERSONAL: { label: 'Kişisel', icon: UserIcon },
+};
 
 const normalize = (s: string) => s.toLocaleLowerCase('tr-TR').trim();
 
@@ -101,6 +103,7 @@ export const ListsScreen: React.FC = () => {
   };
 
   const openCreate = () => navigation.navigate('ListForm', { type });
+  const cycleScope = () => setScope(SCOPE_ORDER[(SCOPE_ORDER.indexOf(scope) + 1) % SCOPE_ORDER.length]);
 
   const openActions = (list: AppList) => {
     const { isOwner, canLeave } = listMembership(list, currentUser);
@@ -157,7 +160,16 @@ export const ListsScreen: React.FC = () => {
   return (
     <Screen
       title="Listeler"
-      right={<IconButton icon={Ticket} label="Kodla katıl" onPress={() => navigation.navigate('JoinList')} />}
+      right={
+        <>
+          <IconButton
+            icon={SCOPE_META[scope].icon}
+            label={`Görünüm: ${SCOPE_META[scope].label} — değiştirmek için dokun`}
+            onPress={cycleScope}
+          />
+          <IconButton icon={Ticket} label="Kodla katıl" onPress={() => navigation.navigate('JoinList')} />
+        </>
+      }
       refreshing={refreshing}
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
@@ -172,30 +184,27 @@ export const ListsScreen: React.FC = () => {
         onChange={setType}
       />
 
-      <View style={tw`gap-3`}>
-        <View>
-          <TextField
-            icon={Search}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={`${meta.label} içinde ara`}
-            returnKeyType="search"
-            autoCorrect={false}
-            clearButtonMode="never"
-          />
-          {query ? (
-            <Pressable
-              onPress={() => setQuery('')}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Aramayı temizle"
-              style={tw`absolute right-3 top-0 bottom-0 w-8 items-center justify-center`}
-            >
-              <X {...ic('w-5 h-5 text-slate-400')} />
-            </Pressable>
-          ) : null}
-        </View>
-        <ChipRow options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
+      <View>
+        <TextField
+          icon={Search}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={`${meta.label} içinde ara`}
+          returnKeyType="search"
+          autoCorrect={false}
+          clearButtonMode="never"
+        />
+        {query ? (
+          <Pressable
+            onPress={() => setQuery('')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Aramayı temizle"
+            style={tw`absolute right-3 top-0 bottom-0 w-8 items-center justify-center`}
+          >
+            <X {...ic('w-5 h-5 text-slate-400')} />
+          </Pressable>
+        ) : null}
       </View>
 
       {visible.length ? (
