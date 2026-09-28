@@ -871,27 +871,34 @@ export const useAppStore = create<AppState>((set, get) => {
     isFetchingRates: false,
 
     fetchDailyExchangeRates: async (force = false) => {
-      try {
-        set({ isFetchingRates: true });
-        const url = force ? '/api/exchange-rates?force=true' : '/api/exchange-rates';
-        const res = await fetch(API_BASE_URL + url, { signal: AbortSignal.timeout(10000) });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.ratesInTRY) {
-            setLiveExchangeRates(data.ratesInTRY);
-            set({
-              exchangeRates: data.ratesInTRY,
-              exchangeRatesDate: data.dateStr || new Date().toISOString().split('T')[0],
-              exchangeRatesSource: data.source || 'Açık Döviz Kuru API',
-              isRatesFromDb: !!data.fromCache,
-            });
+      const url = force ? '/api/exchange-rates?force=true' : '/api/exchange-rates';
+      // A single flaky connection attempt used to strand the user on the hardcoded fallback
+      // rates for the rest of the session (nothing else ever retries this call). Retry a
+      // couple of times with a short backoff before giving up.
+      const ATTEMPTS = 3;
+      set({ isFetchingRates: true });
+      for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+        try {
+          const res = await fetch(API_BASE_URL + url, { signal: AbortSignal.timeout(10000) });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ratesInTRY) {
+              setLiveExchangeRates(data.ratesInTRY);
+              set({
+                exchangeRates: data.ratesInTRY,
+                exchangeRatesDate: data.dateStr || new Date().toISOString().split('T')[0],
+                exchangeRatesSource: data.source || 'Açık Döviz Kuru API',
+                isRatesFromDb: !!data.fromCache,
+              });
+            }
+            break;
           }
+        } catch (err) {
+          console.warn(`[ExchangeRates] fetch error (attempt ${attempt}/${ATTEMPTS}):`, err);
         }
-      } catch (err) {
-        console.warn('[ExchangeRates] fetch error:', err);
-      } finally {
-        set({ isFetchingRates: false });
+        if (attempt < ATTEMPTS) await new Promise<void>((resolve) => setTimeout(resolve, attempt * 1500));
       }
+      set({ isFetchingRates: false });
     },
 
     fetchInitialData: async (forceSync = false) => {
