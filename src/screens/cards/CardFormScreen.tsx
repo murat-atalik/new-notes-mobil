@@ -127,6 +127,7 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
         familyId: currentUser.familyId,
         initialBalance: fields.balance,
         excludeFromReports: false,
+        excludeFromSavings: false,
       });
       showToast('Kart eklendi');
     }

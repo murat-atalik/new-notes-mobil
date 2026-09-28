@@ -5,7 +5,14 @@ import { Landmark, PiggyBank, Plus } from 'lucide-react-native';
 import { Card, EmptyState, IconButton, IconTile, ProgressBar, Section, StackScreen, Stat, Text } from '../../design';
 import { formatMoney } from '../../logic/format';
 import { CARD_TYPE_META, netWorth, useFinance } from '../../logic/selectors';
-import { convertCurrencyToTRY, formatAssetQuantityDisplay, getCurrencyRateInTRY, getCurrencySymbol, getCurrencyUnitConfig } from '../../lib/currencyUnits';
+import {
+  convertCurrencyToTRY,
+  CURRENCY_UNIT_LIST,
+  formatAssetQuantityDisplay,
+  getCurrencyRateInTRY,
+  getCurrencySymbol,
+  getCurrencyUnitConfig,
+} from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -28,9 +35,9 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
 
   const worth = netWorth(cards, savings, rates);
   // Bank accounts already sit in `cards`, but they're money you're holding onto too — show them
-  // here as well (converted to TRY) instead of only inside the Cüzdan/Kartlar totals. Intentionally
-  // independent of `excludeFromReports` — that flag is about the Cüzdan/Net Varlık totals, not this screen.
-  const bankCards = useMemo(() => cards.filter((c) => c.type === 'DEBIT_CARD'), [cards]);
+  // here as well (converted to TRY) instead of only inside the Cüzdan/Kartlar totals. Gated on its
+  // own `excludeFromSavings` flag, independent of `excludeFromReports` (Cüzdan/Net Varlık totals).
+  const bankCards = useMemo(() => cards.filter((c) => c.type === 'DEBIT_CARD' && !c.excludeFromSavings), [cards]);
   const bankCardsTotal = useMemo(
     () => bankCards.reduce((s, c) => s + convertCurrencyToTRY(c.balance || 0, c.currency || 'TRY', rates), 0),
     [bankCards, rates],
@@ -59,13 +66,9 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
     })),
   ].sort((a, b) => b.amountTRY - a.amountTRY);
 
-  // Exchange rates actually behind the TL conversions above, so the totals are never a black box.
-  const rateKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const a of savings) if (a.currency && a.currency !== 'TRY') keys.add(a.currency);
-    for (const c of bankCards) if (c.currency && c.currency !== 'TRY') keys.add(c.currency);
-    return [...keys];
-  }, [savings, bankCards]);
+  // Every currency/gold unit a savings entry can be created in — not just the ones already
+  // held — so this doubles as a quick reference before adding a new one.
+  const rateKeys = useMemo(() => CURRENCY_UNIT_LIST.filter((u) => u.key !== 'TRY').map((u) => u.key), []);
 
   const onRefresh = async () => {
     setRefreshing(true);

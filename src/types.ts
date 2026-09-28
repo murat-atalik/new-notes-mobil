@@ -180,6 +180,7 @@ export interface PaymentCard {
   investmentType?: string; // Örn: "Döviz Hesabı (EUR)", "Döviz Hesabı (USD)", "Banka Vadeli", "Mevduat Hesabı", "Yatırım & Fon"
   activeBillingCycle?: string; // Seçili ekstre dönemi ('CURRENT' | 'PREV_1' | 'PREV_2' | 'NEXT_1')
   excludeFromReports?: boolean; // Raporlardan hariç tutulma durumu
+  excludeFromSavings?: boolean; // Birikimler ekranından hariç tutulma durumu (Raporlar'dan bağımsız)
   transactions?: CardTransaction[];
   createdAt: string;
   updatedAt?: string;

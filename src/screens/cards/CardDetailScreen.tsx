@@ -57,6 +57,7 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
 
   const credit = isCreditCard(card);
   const food = card.type === 'FOOD_CARD';
+  const isBankAccount = card.type === 'DEBIT_CARD';
   const currency = credit ? 'TRY' : card.currency || 'TRY';
   const txs = card.transactions || [];
   const limit = card.creditLimit || 0;
@@ -236,6 +237,18 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
           onValueChange={(v) => updatePaymentCard(card.id, { excludeFromReports: !v })}
         />
       </ListGroup>
+
+      {isBankAccount ? (
+        <ListGroup footer="Kapalıysa bu hesap Birikimler ekranında görünmez. Raporlar ayarından bağımsızdır.">
+          <SwitchRow
+            title="Birikimlere dahil et"
+            icon="PiggyBank"
+            iconColor={palette.brand}
+            value={!card.excludeFromSavings}
+            onValueChange={(v) => updatePaymentCard(card.id, { excludeFromSavings: !v })}
+          />
+        </ListGroup>
+      ) : null}
 
       <Button title="Kartı Sil" variant="dangerTinted" icon={Trash2} onPress={onDelete} fullWidth />
     </StackScreen>
