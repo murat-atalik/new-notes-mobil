@@ -761,25 +761,35 @@ export const SelectField: React.FC<{
   </FieldLabel>
 );
 
-export type SwatchOption = { value: string; label: string; sublabel?: string; icon?: string; emoji?: string; color?: string };
+export type SwatchOption<T extends string = string> = { value: T; label: string; sublabel?: string; icon?: string; emoji?: string; color?: string };
 
 /**
  * A colorful "sticker grid" picker — the trigger shows the selected option as a tinted
  * pill, tapping it opens a sheet of tinted cards (icon + label, a checkmark on the
  * active one). Used where a plain text dropdown feels too flat: currency, category…
  */
-export const SwatchField: React.FC<{
+export function SwatchField<T extends string = string>({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Seç',
+  hint,
+  sheetTitle,
+  onAddNew,
+  addNewLabel = 'Yeni ekle',
+}: {
   label?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: SwatchOption[];
+  value: T;
+  onChange: (value: T) => void;
+  options: SwatchOption<T>[];
   placeholder?: string;
   hint?: string;
   sheetTitle?: string;
   /** Shows a trailing "Yeni ekle" tile in the sheet; e.g. to jump to a category-creation form. */
   onAddNew?: () => void;
   addNewLabel?: string;
-}> = ({ label, value, onChange, options, placeholder = 'Seç', hint, sheetTitle, onAddNew, addNewLabel = 'Yeni ekle' }) => {
+}) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   const color = selected?.color || palette.brandLight;
@@ -858,7 +868,7 @@ export const SwatchField: React.FC<{
       </Sheet>
     </FieldLabel>
   );
-};
+}
 
 export const DateField: React.FC<{
   label?: string;

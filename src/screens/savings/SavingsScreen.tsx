@@ -27,8 +27,9 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
 
   const worth = netWorth(cards, savings, rates);
   // Bank accounts already sit in `cards`, but they're money you're holding onto too — show them
-  // here as well (converted to TRY) instead of only inside the Cüzdan/Kartlar totals.
-  const bankCards = useMemo(() => cards.filter((c) => c.type === 'DEBIT_CARD' && !c.excludeFromReports), [cards]);
+  // here as well (converted to TRY) instead of only inside the Cüzdan/Kartlar totals. Intentionally
+  // independent of `excludeFromReports` — that flag is about the Cüzdan/Net Varlık totals, not this screen.
+  const bankCards = useMemo(() => cards.filter((c) => c.type === 'DEBIT_CARD'), [cards]);
   const bankCardsTotal = useMemo(
     () => bankCards.reduce((s, c) => s + convertCurrencyToTRY(c.balance || 0, c.currency || 'TRY', rates), 0),
     [bankCards, rates],
@@ -183,6 +184,11 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
                           {foreign ? (
                             <Text variant="caption" tone="faint">
                               {formatMoney(card.balance || 0, card.currency)}
+                            </Text>
+                          ) : null}
+                          {card.excludeFromReports ? (
+                            <Text variant="caption" tone="faint">
+                              Raporlarda hariç
                             </Text>
                           ) : null}
                         </View>

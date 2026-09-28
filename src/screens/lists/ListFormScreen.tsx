@@ -5,7 +5,6 @@ import { Camera, X as XIcon } from 'lucide-react-native';
 
 import {
   Btn,
-  ChipRow,
   ColorPicker,
   FieldLabel,
   FormScreen,
@@ -13,10 +12,11 @@ import {
   LIST_COLORS,
   ListGroup,
   showToast,
+  SwatchField,
   SwitchRow,
   Text,
   TextField,
-  type ChipOption,
+  type SwatchOption,
 } from '../../design';
 import { pickAndUploadPhoto } from '../../lib/photoPicker';
 import { tw } from '../../lib/tw';
@@ -136,17 +136,19 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
       submitDisabled={!valid}
     >
       {!isEdit ? (
-        <FieldLabel label="Liste türü">
-          <ChipRow<AnyListType>
-            options={[
-              ...LIST_TYPES.map((t): ChipOption<AnyListType> => ({ value: t, label: LIST_TYPE_META[t].label, icon: LIST_TYPE_META[t].icon, color: LIST_TYPE_META[t].color })),
-              { value: 'ROOM', label: ROOM_META.label, icon: ROOM_META.icon, color: ROOM_META.color },
-              { value: 'WEIGHT', label: WEIGHT_META.label, icon: WEIGHT_META.icon, color: WEIGHT_META.color },
-            ]}
-            value={type}
-            onChange={changeType}
-          />
-        </FieldLabel>
+        <SwatchField<AnyListType>
+          label="Liste türü"
+          value={type}
+          onChange={changeType}
+          sheetTitle="Liste türü seç"
+          options={[
+            ...LIST_TYPES.map(
+              (t): SwatchOption<AnyListType> => ({ value: t, label: LIST_TYPE_META[t].label, icon: LIST_TYPE_META[t].defaultIcon, color: LIST_TYPE_META[t].color }),
+            ),
+            { value: 'ROOM', label: ROOM_META.label, icon: ROOM_META.defaultIcon, color: ROOM_META.color },
+            { value: 'WEIGHT', label: WEIGHT_META.label, icon: WEIGHT_META.defaultIcon, color: WEIGHT_META.color },
+          ]}
+        />
       ) : null}
 
       {isRoom ? (

@@ -4,7 +4,6 @@ import { useRoute, type RouteProp } from '@react-navigation/native';
 import { Copy, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
 
 import {
-  ChipRow,
   confirmAction,
   EmptyState,
   FAB,
@@ -12,10 +11,11 @@ import {
   Screen,
   showActionSheet,
   showToast,
+  SwatchField,
   Text,
   TextField,
   type ActionSheetOption,
-  type ChipOption,
+  type SwatchOption,
 } from '../../design';
 import { filterByScope, listMembership, useMyLists, type Scope } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
@@ -174,14 +174,23 @@ export const ListsScreen: React.FC = () => {
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
     >
-      <ChipRow<AnyListType>
-        options={[
-          ...LIST_TYPES.map((t): ChipOption<AnyListType> => ({ value: t, label: LIST_TYPE_META[t].label, color: LIST_TYPE_META[t].color, count: counts[t] })),
-          { value: 'ROOM', label: ROOM_META.label, color: ROOM_META.color, count: counts.ROOM },
-          { value: 'WEIGHT', label: WEIGHT_META.label, color: WEIGHT_META.color, count: counts.WEIGHT },
-        ]}
+      <SwatchField<AnyListType>
         value={type}
         onChange={setType}
+        sheetTitle="Liste türü seç"
+        options={[
+          ...LIST_TYPES.map(
+            (t): SwatchOption<AnyListType> => ({
+              value: t,
+              label: LIST_TYPE_META[t].label,
+              sublabel: `${counts[t]} liste`,
+              icon: LIST_TYPE_META[t].defaultIcon,
+              color: LIST_TYPE_META[t].color,
+            }),
+          ),
+          { value: 'ROOM', label: ROOM_META.label, sublabel: `${counts.ROOM} liste`, icon: ROOM_META.defaultIcon, color: ROOM_META.color },
+          { value: 'WEIGHT', label: WEIGHT_META.label, sublabel: `${counts.WEIGHT} liste`, icon: WEIGHT_META.defaultIcon, color: WEIGHT_META.color },
+        ]}
       />
 
       <View>
