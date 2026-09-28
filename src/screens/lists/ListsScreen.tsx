@@ -160,16 +160,7 @@ export const ListsScreen: React.FC = () => {
   return (
     <Screen
       title="Listeler"
-      right={
-        <>
-          <IconButton
-            icon={SCOPE_META[scope].icon}
-            label={`Görünüm: ${SCOPE_META[scope].label} — değiştirmek için dokun`}
-            onPress={cycleScope}
-          />
-          <IconButton icon={Ticket} label="Kodla katıl" onPress={() => navigation.navigate('JoinList')} />
-        </>
-      }
+      right={<IconButton icon={Ticket} label="Kodla katıl" onPress={() => navigation.navigate('JoinList')} />}
       refreshing={refreshing}
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
@@ -193,27 +184,35 @@ export const ListsScreen: React.FC = () => {
         ]}
       />
 
-      <View>
-        <TextField
-          icon={Search}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={`${meta.label} içinde ara`}
-          returnKeyType="search"
-          autoCorrect={false}
-          clearButtonMode="never"
+      <View style={tw`flex-row items-center gap-2`}>
+        <View style={tw`flex-1`}>
+          <TextField
+            icon={Search}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={`${meta.label} içinde ara`}
+            returnKeyType="search"
+            autoCorrect={false}
+            clearButtonMode="never"
+          />
+          {query ? (
+            <Pressable
+              onPress={() => setQuery('')}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Aramayı temizle"
+              style={tw`absolute right-3 top-0 bottom-0 w-8 items-center justify-center`}
+            >
+              <X {...ic('w-5 h-5 text-slate-400')} />
+            </Pressable>
+          ) : null}
+        </View>
+        <IconButton
+          icon={SCOPE_META[scope].icon}
+          label={`Görünüm: ${SCOPE_META[scope].label} — değiştirmek için dokun`}
+          onPress={cycleScope}
+          size="lg"
         />
-        {query ? (
-          <Pressable
-            onPress={() => setQuery('')}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Aramayı temizle"
-            style={tw`absolute right-3 top-0 bottom-0 w-8 items-center justify-center`}
-          >
-            <X {...ic('w-5 h-5 text-slate-400')} />
-          </Pressable>
-        ) : null}
       </View>
 
       {visible.length ? (
