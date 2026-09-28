@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import { Copy, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
+import { Copy, Layers, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
 
 import {
   confirmAction,
@@ -39,6 +39,17 @@ const SCOPE_META: Record<Scope, { label: string; icon: typeof Users2 }> = {
 
 const normalize = (s: string) => s.toLocaleLowerCase('tr-TR').trim();
 
+/** The type-filter picker also offers a combined "Tümü" view, on top of the real list types. */
+type FilterType = AnyListType | 'ALL_TYPES';
+const ALL_TYPES_META = {
+  label: 'Tümü',
+  icon: Layers,
+  defaultIcon: 'Layers',
+  color: '#334155',
+  emptyTitle: 'Henüz liste eklemedin',
+  emptyMessage: 'Alışveriş, görev, not, oda ya da kilo takibi listesi oluştur.',
+};
+
 export const ListsScreen: React.FC = () => {
   const navigation = useAppNavigation();
   const route = useRoute<RouteProp<TabParamList, 'Lists'>>();
@@ -53,7 +64,7 @@ export const ListsScreen: React.FC = () => {
   const deleteList = useAppStore((s) => s.deleteList);
   const leaveList = useAppStore((s) => s.leaveList);
 
-  const [type, setType] = useState<AnyListType>(paramType ?? 'SHOPPING');
+  const [type, setType] = useState<FilterType>(paramType ?? 'ALL_TYPES');
   const [lastParam, setLastParam] = useState(paramType);
   // Honor a new `type` route param (e.g. jump from Home) while keeping the user's own choice otherwise.
   if (paramType !== lastParam) {
@@ -89,7 +100,7 @@ export const ListsScreen: React.FC = () => {
   const visible = useMemo(() => {
     const q = normalize(query);
     return filterByScope(lists, scope, currentUser).filter(
-      (l) => l.type === type && (!q || normalize(l.title).includes(q) || normalize(l.description ?? '').includes(q)),
+      (l) => (type === 'ALL_TYPES' || l.type === type) && (!q || normalize(l.title).includes(q) || normalize(l.description ?? '').includes(q)),
     );
   }, [lists, scope, currentUser, type, query]);
 
@@ -102,7 +113,7 @@ export const ListsScreen: React.FC = () => {
     }
   };
 
-  const openCreate = () => navigation.navigate('ListForm', { type });
+  const openCreate = () => navigation.navigate('ListForm', { type: type === 'ALL_TYPES' ? 'SHOPPING' : type });
   const cycleScope = () => setScope(SCOPE_ORDER[(SCOPE_ORDER.indexOf(scope) + 1) % SCOPE_ORDER.length]);
 
   const openActions = (list: AppList) => {
@@ -154,7 +165,7 @@ export const ListsScreen: React.FC = () => {
     showActionSheet({ title: list.title, options });
   };
 
-  const meta = type === 'ROOM' ? ROOM_META : type === 'WEIGHT' ? WEIGHT_META : LIST_TYPE_META[type];
+  const meta = type === 'ALL_TYPES' ? ALL_TYPES_META : type === 'ROOM' ? ROOM_META : type === 'WEIGHT' ? WEIGHT_META : LIST_TYPE_META[type];
   const filtering = query.trim().length > 0 || scope !== 'ALL';
 
   return (
@@ -165,13 +176,14 @@ export const ListsScreen: React.FC = () => {
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
     >
-      <SwatchField<AnyListType>
+      <SwatchField<FilterType>
         value={type}
         onChange={setType}
         sheetTitle="Liste türü seç"
         options={[
+          { value: 'ALL_TYPES', label: ALL_TYPES_META.label, sublabel: `${lists.length} liste`, icon: ALL_TYPES_META.defaultIcon, color: ALL_TYPES_META.color },
           ...LIST_TYPES.map(
-            (t): SwatchOption<AnyListType> => ({
+            (t): SwatchOption<FilterType> => ({
               value: t,
               label: LIST_TYPE_META[t].label,
               sublabel: `${counts[t]} liste`,
