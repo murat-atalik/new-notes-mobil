@@ -107,6 +107,39 @@ export function roomProgress(items: ListItem[]) {
   };
 }
 
+/**
+ * Weight-tracking (Kilo Takibi) reuses the List/Item shape: an entry's date lives in
+ * `dueDate` and its measurement (kg) in `price` — see the `AnyListType` comment in types.ts.
+ */
+export type WeightEntry = { id: string; date: string; value: number };
+
+/** Entries sorted oldest → newest. */
+export function weightSeries(items: ListItem[]): WeightEntry[] {
+  return items
+    .map((i) => ({ id: i.id, date: i.dueDate || i.createdAt, value: i.price || 0 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Same entries, newest first, each with its delta vs. the previous (older) measurement. */
+export function weightDiffs(items: ListItem[]): (WeightEntry & { diff: number | null })[] {
+  const series = weightSeries(items);
+  return series
+    .map((entry, index) => ({ ...entry, diff: index > 0 ? Math.round((entry.value - series[index - 1].value) * 100) / 100 : null }))
+    .reverse();
+}
+
+/** Latest measurement, entry count, and total change since the first entry. */
+export function weightSummary(items: ListItem[]) {
+  const series = weightSeries(items);
+  const first = series[0];
+  const latest = series[series.length - 1];
+  return {
+    count: series.length,
+    latest: latest ? latest.value : null,
+    totalDiff: first && latest && series.length > 1 ? Math.round((latest.value - first.value) * 100) / 100 : null,
+  };
+}
+
 export function filterByScope(lists: AppList[], scope: Scope, user: User): AppList[] {
   if (scope === 'ALL') return lists;
   return lists.filter((l) => (scope === 'SHARED' ? isFamilyListForUser(l, user) : l.isShared === false));

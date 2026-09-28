@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
-import { Camera, FileQuestion, Link2, Minus, Plus, Trash2, X as XIcon } from 'lucide-react-native';
+import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Camera, ExternalLink, FileQuestion, Link2, Minus, Plus, Trash2, X as XIcon } from 'lucide-react-native';
 
 import {
   Btn,
@@ -72,7 +72,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const { listId, itemId } = route.params;
   const list = useAccessibleList(listId);
   const item = useAppStore((s) => (itemId ? s.items.find((i) => i.id === itemId) : undefined));
-  const categories = useCategoriesFor(list?.type === 'ROOM' ? undefined : list?.type);
+  const categories = useCategoriesFor(list?.type === 'ROOM' || list?.type === 'WEIGHT' ? undefined : list?.type);
   const people = usePeople(list);
   const addItem = useAppStore((s) => s.addItem);
   const updateItem = useAppStore((s) => s.updateItem);
@@ -172,6 +172,13 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
         navigation.goBack();
       },
     });
+
+  const openLink = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    Linking.openURL(withScheme).catch(() => showToast('Link açılamadı'));
+  };
 
   const setQuick = (q: DueQuick) => {
     if (q === 'today') setDueDate(addDays(0));
@@ -344,6 +351,14 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
                   />
                 </View>
                 <Btn
+                  onPress={() => openLink(link)}
+                  disabled={!link.trim()}
+                  accessibilityLabel="Linki aç"
+                  className="w-11 h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800"
+                >
+                  <ExternalLink size={18} color={palette.brand} />
+                </Btn>
+                <Btn
                   onPress={() => setLinks((prev) => prev.filter((_, i) => i !== index))}
                   accessibilityLabel="Linki kaldır"
                   className="w-11 h-11 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800"
@@ -385,6 +400,8 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
           onChange={setCategoryId}
           options={categorySwatches}
           sheetTitle="Kategori seç"
+          onAddNew={isShopping || isTodo ? () => navigation.navigate('CategoryForm', { type: list.type as 'SHOPPING' | 'TODO' }) : undefined}
+          addNewLabel="Yeni kategori"
         />
       ) : null}
 

@@ -10,6 +10,7 @@ export const ROOM_META = {
   singular: 'Oda',
   icon: Home,
   defaultIcon: 'Home',
+  color: '#0ea5e9',
   emptyTitle: 'Henüz oda eklemedin',
   emptyMessage: 'Salon, yatak odası gibi odalar oluştur; her biri için alınacak ürünleri ve bütçeni takip et.',
 };

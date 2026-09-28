@@ -5,17 +5,18 @@ import { Camera, X as XIcon } from 'lucide-react-native';
 
 import {
   Btn,
+  ChipRow,
   ColorPicker,
   FieldLabel,
   FormScreen,
   IconTile,
   LIST_COLORS,
   ListGroup,
-  Segmented,
   showToast,
   SwitchRow,
   Text,
   TextField,
+  type ChipOption,
 } from '../../design';
 import { pickAndUploadPhoto } from '../../lib/photoPicker';
 import { tw } from '../../lib/tw';
@@ -24,6 +25,7 @@ import { useAppStore } from '../../store/useAppStore';
 import type { AnyListType } from '../../types';
 import { LIST_ICONS, LIST_TYPE_META, LIST_TYPES } from './listMeta';
 import { ROOM_ICONS, ROOM_META } from './roomMeta';
+import { WEIGHT_ICONS, WEIGHT_META } from './weightMeta';
 
 const TITLE_MAX = 60;
 
@@ -44,19 +46,26 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
   const [uploadingCover, setUploadingCover] = useState(false);
   const [title, setTitle] = useState(existing?.title ?? '');
   const [description, setDescription] = useState(existing?.description ?? '');
-  const [icon, setIcon] = useState(existing?.icon ?? (initialType === 'ROOM' ? ROOM_META.defaultIcon : LIST_TYPE_META[initialType].defaultIcon));
+  const [icon, setIcon] = useState(
+    existing?.icon ??
+      (initialType === 'ROOM' ? ROOM_META.defaultIcon : initialType === 'WEIGHT' ? WEIGHT_META.defaultIcon : LIST_TYPE_META[initialType].defaultIcon),
+  );
   const [color, setColor] = useState(existing?.color ?? LIST_COLORS[0]);
   const [isShared, setIsShared] = useState(existing ? existing.isShared !== false : true);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
   const isRoom = type === 'ROOM';
-  const meta = isRoom ? ROOM_META : LIST_TYPE_META[type];
-  const typeTemplates = useMemo(() => (isRoom ? [] : templates.filter((t) => t.type === type)), [templates, type, isRoom]);
+  const isWeight = type === 'WEIGHT';
+  const meta = isRoom ? ROOM_META : isWeight ? WEIGHT_META : LIST_TYPE_META[type];
+  const typeTemplates = useMemo(
+    () => (isRoom || isWeight ? [] : templates.filter((t) => t.type === type)),
+    [templates, type, isRoom, isWeight],
+  );
   const icons = useMemo(() => {
-    const base = isRoom ? ROOM_ICONS : LIST_ICONS[type];
+    const base = isRoom ? ROOM_ICONS : isWeight ? WEIGHT_ICONS : LIST_ICONS[type];
     return icon && !base.includes(icon) ? [icon, ...base] : base;
-  }, [type, icon, isRoom]);
+  }, [type, icon, isRoom, isWeight]);
 
   const trimmed = title.trim();
   const titleError = touched && !trimmed ? 'Liste adı gerekli' : undefined;
@@ -67,6 +76,10 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
     setTemplateId(null);
     if (next === 'ROOM') {
       if (!ROOM_ICONS.includes(icon)) setIcon(ROOM_META.defaultIcon);
+      return;
+    }
+    if (next === 'WEIGHT') {
+      if (!WEIGHT_ICONS.includes(icon)) setIcon(WEIGHT_META.defaultIcon);
       return;
     }
     if (!LIST_ICONS[next].includes(icon)) setIcon(LIST_TYPE_META[next].defaultIcon);
@@ -123,14 +136,17 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
       submitDisabled={!valid}
     >
       {!isEdit ? (
-        <Segmented
-          options={[
-            ...LIST_TYPES.map((t) => ({ value: t as AnyListType, label: LIST_TYPE_META[t].label, icon: LIST_TYPE_META[t].icon })),
-            { value: 'ROOM' as AnyListType, label: ROOM_META.label, icon: ROOM_META.icon },
-          ]}
-          value={type}
-          onChange={changeType}
-        />
+        <FieldLabel label="Liste türü">
+          <ChipRow<AnyListType>
+            options={[
+              ...LIST_TYPES.map((t): ChipOption<AnyListType> => ({ value: t, label: LIST_TYPE_META[t].label, icon: LIST_TYPE_META[t].icon, color: LIST_TYPE_META[t].color })),
+              { value: 'ROOM', label: ROOM_META.label, icon: ROOM_META.icon, color: ROOM_META.color },
+              { value: 'WEIGHT', label: WEIGHT_META.label, icon: WEIGHT_META.icon, color: WEIGHT_META.color },
+            ]}
+            value={type}
+            onChange={changeType}
+          />
+        </FieldLabel>
       ) : null}
 
       {isRoom ? (
@@ -171,7 +187,17 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
         value={title}
         onChangeText={setTitle}
         onBlur={() => setTouched(true)}
-        placeholder={type === 'SHOPPING' ? 'Örn. Haftalık market' : type === 'TODO' ? 'Örn. Ev işleri' : type === 'ROOM' ? 'Örn. Salon' : 'Örn. Tarifler'}
+        placeholder={
+          type === 'SHOPPING'
+            ? 'Örn. Haftalık market'
+            : type === 'TODO'
+              ? 'Örn. Ev işleri'
+              : type === 'ROOM'
+                ? 'Örn. Salon'
+                : type === 'WEIGHT'
+                  ? 'Örn. Kilom'
+                  : 'Örn. Tarifler'
+        }
         autoFocus={!isEdit}
         maxLength={TITLE_MAX}
         returnKeyType="done"

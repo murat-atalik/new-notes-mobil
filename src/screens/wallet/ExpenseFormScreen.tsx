@@ -183,7 +183,15 @@ export const ExpenseFormScreen: React.FC<RootScreenProps<'ExpenseForm'>> = ({ na
         <SwatchField label="Para birimi" value={currency} onChange={setCurrency} options={currencySwatches} sheetTitle="Para birimi seç" />
       </View>
 
-      <SwatchField label="Kategori" value={category} onChange={setCategory} options={categorySwatches} sheetTitle="Kategori seç" />
+      <SwatchField
+        label="Kategori"
+        value={category}
+        onChange={setCategory}
+        options={categorySwatches}
+        sheetTitle="Kategori seç"
+        onAddNew={() => navigation.navigate('CategoryForm', { type: 'SHOPPING' })}
+        addNewLabel="Yeni kategori"
+      />
 
       <TextField
         label={isCheckout ? 'Not' : 'Başlık / Not'}

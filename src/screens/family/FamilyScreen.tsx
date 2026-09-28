@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Copy, Crown, LogIn, LogOut, Pencil, Plus, Share2 } from 'lucide-react-native';
 
 import { Badge, Btn, EmptyState, Gradient, ListGroup, palette, ProgressBar, Row, Screen, Section, Text, UserAvatar, confirmAction, showToast } from '../../design';
-import { listProgress, roomProgress } from '../../logic/selectors';
+import { listProgress, roomProgress, weightSummary } from '../../logic/selectors';
 import { copyToClipboard, shareText } from '../../lib/native';
 import { isFamilyListForUser } from '../../lib/permissions';
 import { tw } from '../../lib/tw';
@@ -138,6 +138,8 @@ export const FamilyScreen: React.FC = () => {
               const p = listProgress(listItems);
               // Rooms are funded (₺), not checked off item by item — show that percentage instead.
               const percent = l.type === 'ROOM' ? roomProgress(listItems).percent : p.percent;
+              // Weight entries don't have a "done/total" or funded-% concept — show the latest measurement instead.
+              const weight = l.type === 'WEIGHT' ? weightSummary(listItems) : null;
               return (
                 <Row
                   key={l.id}
@@ -146,14 +148,20 @@ export const FamilyScreen: React.FC = () => {
                   title={l.title}
                   tint={l.color}
                   right={
-                    <View style={tw`w-20 gap-1 items-end`}>
-                      <Text variant="caption" tone="muted">
-                        {`${p.done}/${p.total}`}
+                    weight ? (
+                      <Text variant="footnote" tone="muted">
+                        {weight.count ? `${weight.latest} kg · ${weight.count} ölçüm` : 'Henüz ölçüm yok'}
                       </Text>
-                      <View style={tw`w-full`}>
-                        <ProgressBar value={percent} color={l.color} height={5} />
+                    ) : (
+                      <View style={tw`w-20 gap-1 items-end`}>
+                        <Text variant="caption" tone="muted">
+                          {`${p.done}/${p.total}`}
+                        </Text>
+                        <View style={tw`w-full`}>
+                          <ProgressBar value={percent} color={l.color} height={5} />
+                        </View>
                       </View>
-                    </View>
+                    )
                   }
                   onPress={() => navigation.navigate('ListDetail', { listId: l.id })}
                 />

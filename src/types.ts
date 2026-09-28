@@ -1,6 +1,11 @@
 export type ListType = 'SHOPPING' | 'TODO' | 'NOTE';
-/** A list can also be a Room (Oda): a shareable container of products to buy for it. */
-export type AnyListType = ListType | 'ROOM';
+/**
+ * A list can also be a Room (Oda): a shareable container of products to buy for it, or a
+ * Weight tracker (Kilo Takibi): a dated log of measurements. Both reuse the List/Item shape —
+ * a Weight entry stores its value in `price` (kg) and its date in `dueDate`, so no schema
+ * change was needed on the server.
+ */
+export type AnyListType = ListType | 'ROOM' | 'WEIGHT';
 
 export type Role = 'OWNER' | 'EDITOR';
 

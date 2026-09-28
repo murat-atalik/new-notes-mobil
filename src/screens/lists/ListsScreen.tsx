@@ -10,12 +10,12 @@ import {
   FAB,
   IconButton,
   Screen,
-  Segmented,
   showActionSheet,
   showToast,
   Text,
   TextField,
   type ActionSheetOption,
+  type ChipOption,
 } from '../../design';
 import { filterByScope, listMembership, useMyLists, type Scope } from '../../logic/selectors';
 import { ic, tw } from '../../lib/tw';
@@ -26,6 +26,8 @@ import { LIST_TYPE_META, LIST_TYPES } from './listMeta';
 import { ListRow } from './ListRow';
 import { RoomCard } from './RoomCard';
 import { ROOM_META } from './roomMeta';
+import { WeightCard } from './WeightCard';
+import { WEIGHT_META } from './weightMeta';
 
 const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
   { value: 'ALL', label: 'Tümü' },
@@ -77,7 +79,7 @@ export const ListsScreen: React.FC = () => {
   }, [users, currentUser]);
 
   const counts = useMemo(() => {
-    const c: Record<AnyListType, number> = { SHOPPING: 0, TODO: 0, NOTE: 0, ROOM: 0 };
+    const c: Record<AnyListType, number> = { SHOPPING: 0, TODO: 0, NOTE: 0, ROOM: 0, WEIGHT: 0 };
     for (const l of lists) c[l.type] += 1;
     return c;
   }, [lists]);
@@ -149,7 +151,7 @@ export const ListsScreen: React.FC = () => {
     showActionSheet({ title: list.title, options });
   };
 
-  const meta = type === 'ROOM' ? ROOM_META : LIST_TYPE_META[type];
+  const meta = type === 'ROOM' ? ROOM_META : type === 'WEIGHT' ? WEIGHT_META : LIST_TYPE_META[type];
   const filtering = query.trim().length > 0 || scope !== 'ALL';
 
   return (
@@ -160,10 +162,11 @@ export const ListsScreen: React.FC = () => {
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
     >
-      <Segmented
+      <ChipRow<AnyListType>
         options={[
-          ...LIST_TYPES.map((t) => ({ value: t as AnyListType, label: LIST_TYPE_META[t].label, count: counts[t] })),
-          { value: 'ROOM' as AnyListType, label: ROOM_META.label, count: counts.ROOM },
+          ...LIST_TYPES.map((t): ChipOption<AnyListType> => ({ value: t, label: LIST_TYPE_META[t].label, color: LIST_TYPE_META[t].color, count: counts[t] })),
+          { value: 'ROOM', label: ROOM_META.label, color: ROOM_META.color, count: counts.ROOM },
+          { value: 'WEIGHT', label: WEIGHT_META.label, color: WEIGHT_META.color, count: counts.WEIGHT },
         ]}
         value={type}
         onChange={setType}
@@ -207,6 +210,8 @@ export const ListsScreen: React.FC = () => {
             };
             return list.type === 'ROOM' ? (
               <RoomCard key={list.id} {...rowProps} room={list} />
+            ) : list.type === 'WEIGHT' ? (
+              <WeightCard key={list.id} {...rowProps} list={list} />
             ) : (
               <ListRow key={list.id} {...rowProps} list={list} />
             );

@@ -17,7 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import * as Icons from 'lucide-react-native';
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, X } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, Plus, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { create } from 'zustand';
 
@@ -776,7 +776,10 @@ export const SwatchField: React.FC<{
   placeholder?: string;
   hint?: string;
   sheetTitle?: string;
-}> = ({ label, value, onChange, options, placeholder = 'Seç', hint, sheetTitle }) => {
+  /** Shows a trailing "Yeni ekle" tile in the sheet; e.g. to jump to a category-creation form. */
+  onAddNew?: () => void;
+  addNewLabel?: string;
+}> = ({ label, value, onChange, options, placeholder = 'Seç', hint, sheetTitle, onAddNew, addNewLabel = 'Yeni ekle' }) => {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   const color = selected?.color || palette.brandLight;
@@ -834,6 +837,23 @@ export const SwatchField: React.FC<{
               </Pressable>
             );
           })}
+          {onAddNew ? (
+            <Pressable
+              onPress={() => {
+                setOpen(false);
+                onAddNew();
+              }}
+              accessibilityRole="button"
+              style={tw`grow basis-[47%] rounded-3xl p-3.5 gap-3 border-2 border-dashed border-slate-300 dark:border-slate-700 items-center justify-center`}
+            >
+              <View style={tw`w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 items-center justify-center`}>
+                <Plus size={20} color={palette.slate500} />
+              </View>
+              <Text variant="subhead" weight="bold" tone="muted">
+                {addNewLabel}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </Sheet>
     </FieldLabel>
@@ -900,7 +920,7 @@ export function Segmented<T extends string>({
   );
 }
 
-export type ChipOption<T extends string> = { value: T; label: string; color?: string; icon?: LucideIcon };
+export type ChipOption<T extends string> = { value: T; label: string; color?: string; icon?: LucideIcon; count?: number };
 
 /** Horizontally scrolling single-select chips. */
 export function ChipRow<T extends string>({
@@ -945,6 +965,15 @@ export function ChipRow<T extends string>({
             >
               {opt.label}
             </Text>
+            {opt.count !== undefined ? (
+              <Text
+                variant="caption"
+                weight="bold"
+                className={active ? (opt.color ? 'text-white/80' : 'text-white/70 dark:text-slate-900/60') : 'text-slate-400 dark:text-slate-500'}
+              >
+                {String(opt.count)}
+              </Text>
+            ) : null}
           </Pressable>
         );
       })}
