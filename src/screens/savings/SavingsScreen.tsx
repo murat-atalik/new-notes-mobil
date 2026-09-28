@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Landmark, PiggyBank, Plus } from 'lucide-react-native';
+import { PiggyBank, Plus } from 'lucide-react-native';
 
-import { Card, EmptyState, IconButton, IconTile, ProgressBar, Section, StackScreen, Stat, Text } from '../../design';
+import { Card, EmptyState, IconButton, IconTile, ProgressBar, Section, StackScreen, Stat, Text, iconByName } from '../../design';
 import { formatMoney } from '../../logic/format';
 import { CARD_TYPE_META, netWorth, useFinance } from '../../logic/selectors';
 import {
@@ -17,8 +17,13 @@ import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import type { PaymentCard, SavingsAsset } from '../../types';
 import { ASSET_TYPE_META, ASSET_TYPE_ORDER, assetTypeOf } from './assetShared';
+import { formatCardBalance } from '../cards/cardShared';
 
 const BANK_COLOR = '#0ea5e9';
+const GOLD_ACCOUNT_COLOR = '#f59e0b';
+/** Payment card types that double as a savings holding, shown in Varlıklarım alongside SavingsAsset entries. */
+const SAVINGS_CARD_TYPES = ['DEBIT_CARD', 'GOLD_ACCOUNT'] as const;
+const accountCardColor = (card: PaymentCard) => card.color || (card.type === 'GOLD_ACCOUNT' ? GOLD_ACCOUNT_COLOR : BANK_COLOR);
 
 type SavingsRow = { key: string; amountTRY: number } & (
   | { kind: 'asset'; asset: SavingsAsset }
@@ -67,15 +72,20 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const worth = netWorth(cards, savings, rates);
-  // Bank accounts already sit in `cards`, but they're money you're holding onto too — show them
-  // here as well (converted to TRY) instead of only inside the Cüzdan/Kartlar totals. Gated on its
-  // own `excludeFromSavings` flag, independent of `excludeFromReports` (Cüzdan/Net Varlık totals).
-  const bankCards = useMemo(() => cards.filter((c) => c.type === 'DEBIT_CARD' && !c.excludeFromSavings), [cards]);
-  const bankCardsTotal = useMemo(
-    () => bankCards.reduce((s, c) => s + convertCurrencyToTRY(c.balance || 0, c.currency || 'TRY', rates), 0),
-    [bankCards, rates],
+  // Bank accounts and gold accounts already sit in `cards`, but they're money/value you're
+  // holding onto too — show them here as well (converted to TRY) instead of only inside the
+  // Cüzdan/Kartlar totals. Gated on its own `excludeFromSavings` flag, independent of
+  // `excludeFromReports` (Cüzdan/Net Varlık totals).
+  const accountCards = useMemo(
+    () => cards.filter((c) => (SAVINGS_CARD_TYPES as readonly string[]).includes(c.type) && !c.excludeFromSavings),
+    [cards],
   );
-  const totalBirikim = worth.savingsTotal + bankCardsTotal;
+  const bankCards = useMemo(() => accountCards.filter((c) => c.type === 'DEBIT_CARD'), [accountCards]);
+  const goldAccountCards = useMemo(() => accountCards.filter((c) => c.type === 'GOLD_ACCOUNT'), [accountCards]);
+  const cardTRY = (card: PaymentCard) => convertCurrencyToTRY(card.balance || 0, card.currency || 'TRY', rates);
+  const bankCardsTotal = bankCards.reduce((s, c) => s + cardTRY(c), 0);
+  const goldAccountTotal = goldAccountCards.reduce((s, c) => s + cardTRY(c), 0);
+  const totalBirikim = worth.savingsTotal + bankCardsTotal + goldAccountTotal;
 
   const included = savings.filter((a) => !a.excludeFromReports);
   const allocation = [
@@ -86,17 +96,13 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
       amount: included.filter((a) => assetTypeOf(a) === type).reduce((s, a) => s + (a.currentAmount || 0), 0),
     })),
     { key: 'BANK', label: CARD_TYPE_META.DEBIT_CARD.label, color: BANK_COLOR, amount: bankCardsTotal },
+    { key: 'GOLD_ACCOUNT', label: CARD_TYPE_META.GOLD_ACCOUNT.label, color: GOLD_ACCOUNT_COLOR, amount: goldAccountTotal },
   ].filter((a) => a.amount > 0);
   const allocTotal = allocation.reduce((s, a) => s + a.amount, 0);
 
   const rows: SavingsRow[] = [
     ...savings.map((asset): SavingsRow => ({ key: `asset-${asset.id}`, kind: 'asset', asset, amountTRY: asset.currentAmount || 0 })),
-    ...bankCards.map((card): SavingsRow => ({
-      key: `card-${card.id}`,
-      kind: 'card',
-      card,
-      amountTRY: convertCurrencyToTRY(card.balance || 0, card.currency || 'TRY', rates),
-    })),
+    ...accountCards.map((card): SavingsRow => ({ key: `card-${card.id}`, kind: 'card', card, amountTRY: cardTRY(card) })),
   ].sort((a, b) => b.amountTRY - a.amountTRY);
 
   // Every currency/gold unit a savings entry can be created in — not just the ones already
@@ -117,7 +123,7 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
       onRefresh={onRefresh}
       right={<IconButton icon={Plus} label="Birikim ekle" variant="brand" onPress={() => navigation.navigate('AssetForm')} />}
     >
-      {savings.length === 0 && bankCards.length === 0 ? (
+      {savings.length === 0 && accountCards.length === 0 ? (
         <EmptyState
           icon={PiggyBank}
           title="İlk birikimini ekle"
@@ -151,13 +157,18 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
               <Text variant="amount" numberOfLines={1} adjustsFontSizeToFit>
                 {formatMoney(totalBirikim)}
               </Text>
-              {bankCardsTotal > 0 ? (
+              {bankCardsTotal > 0 || goldAccountTotal > 0 ? (
                 <Text variant="caption" tone="muted">
-                  {`Banka hesapları dahil (${formatMoney(bankCardsTotal)})`}
+                  {[
+                    bankCardsTotal > 0 ? `Banka hesapları dahil (${formatMoney(bankCardsTotal)})` : null,
+                    goldAccountTotal > 0 ? `Altın hesapları dahil (${formatMoney(goldAccountTotal)})` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
               ) : null}
             </View>
-            <Stat label="Varlık sayısı" value={String(savings.length + bankCards.length)} caption={`${allocation.length} farklı tür`} />
+            <Stat label="Varlık sayısı" value={String(savings.length + accountCards.length)} caption={`${allocation.length} farklı tür`} />
 
             {allocTotal > 0 ? (
               <View style={tw`gap-3`}>
@@ -185,29 +196,30 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
               {rows.map((row) => {
                 if (row.kind === 'card') {
                   const card = row.card;
-                  const foreign = (card.currency || 'TRY') !== 'TRY';
+                  const cardColor = accountCardColor(card);
+                  const foreign = card.type === 'GOLD_ACCOUNT' || (card.currency || 'TRY') !== 'TRY';
                   return (
                     <Card
                       key={row.key}
                       className="gap-3"
                       onPress={() => navigation.navigate('CardDetail', { cardId: card.id })}
-                      style={{ backgroundColor: `${BANK_COLOR}14`, borderColor: `${BANK_COLOR}33` }}
+                      style={{ backgroundColor: `${cardColor}14`, borderColor: `${cardColor}33` }}
                     >
                       <View style={tw`flex-row items-center gap-3`}>
-                        <IconTile icon={Landmark} color={card.color || BANK_COLOR} />
+                        <IconTile icon={iconByName(CARD_TYPE_META[card.type].icon)} color={cardColor} />
                         <View style={tw`flex-1 min-w-0`}>
                           <Text variant="headline" numberOfLines={1}>
                             {card.name}
                           </Text>
                           <Text variant="footnote" tone="muted" numberOfLines={1}>
-                            {[card.provider, CARD_TYPE_META.DEBIT_CARD.label].filter(Boolean).join(' · ')}
+                            {[card.provider, CARD_TYPE_META[card.type].label].filter(Boolean).join(' · ')}
                           </Text>
                         </View>
                         <View style={tw`items-end`}>
                           <Text variant="headline">{formatMoney(row.amountTRY)}</Text>
                           {foreign ? (
                             <Text variant="caption" tone="faint">
-                              {formatMoney(card.balance || 0, card.currency)}
+                              {formatCardBalance(card, card.balance || 0)}
                             </Text>
                           ) : null}
                           {card.excludeFromReports ? (

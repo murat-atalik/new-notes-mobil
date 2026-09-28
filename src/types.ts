@@ -143,7 +143,8 @@ export type PaymentCardType =
   | 'CREDIT_CARD' // Kredi Kartı (Bonus, Maximum, World, Axess vb.)
   | 'DEBIT_CARD' // Banka Kartı / Vadesiz Hesap (Ziraat, Garanti, İş, Enpara vb.)
   | 'CASH_WALLET' // Nakit Para / Cüzdan
-  | 'PREPAID_CARD'; // Ön Ödemeli Kart (Papara, Paycell vb.)
+  | 'PREPAID_CARD' // Ön Ödemeli Kart (Papara, Paycell vb.)
+  | 'GOLD_ACCOUNT'; // Altın Hesabı — `currency` bir altın birimi (GOLD_GRAM vb.), `balance` o birimden miktar
 
 export interface CardTransaction {
   id: string;

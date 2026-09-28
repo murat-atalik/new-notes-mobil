@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 
 import { AmountField, Card, DateField, EmptyState, FormScreen, showToast, SwatchField, Text, TextField, type SwatchOption } from '../../design';
-import { formatMoney, isoDate, parseAmount } from '../../logic/format';
+import { isoDate, parseAmount } from '../../logic/format';
 import { isCreditCard } from '../../logic/selectors';
 import { getCurrencySymbol } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
-import { SPEND_CATEGORIES } from './cardShared';
+import { formatCardBalance, SPEND_CATEGORIES } from './cardShared';
 
 export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>> = ({ route }) => {
   const navigation = useAppNavigation();
@@ -95,7 +95,7 @@ export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>>
               {credit ? 'Güncel borç' : 'Güncel bakiye'}
             </Text>
             <Text variant="footnote" weight="semibold">
-              {formatMoney(credit ? debt : balance, currency)}
+              {formatCardBalance(card, credit ? debt : balance)}
             </Text>
           </View>
           <View style={tw`flex-row justify-between`}>
@@ -103,7 +103,7 @@ export const CardTransactionScreen: React.FC<RootScreenProps<'CardTransaction'>>
               {credit ? 'İşlem sonrası borç' : 'İşlem sonrası bakiye'}
             </Text>
             <Text variant="footnote" weight="bold" tone={overBalance || overLimit ? 'danger' : spend ? 'default' : 'success'}>
-              {formatMoney(credit ? nextDebt : nextBalance, currency)}
+              {formatCardBalance(card, credit ? nextDebt : nextBalance)}
             </Text>
           </View>
           {overBalance ? (

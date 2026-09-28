@@ -28,7 +28,7 @@ import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
 import type { CardTransaction } from '../../types';
-import { CardVisual, daysLeftLabel, daysUntilDayOfMonth } from './cardShared';
+import { CardVisual, daysLeftLabel, daysUntilDayOfMonth, formatCardBalance } from './cardShared';
 
 function groupTransactions(txs: CardTransaction[]) {
   const map = new Map<string, CardTransaction[]>();
@@ -57,8 +57,7 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
 
   const credit = isCreditCard(card);
   const food = card.type === 'FOOD_CARD';
-  const isBankAccount = card.type === 'DEBIT_CARD';
-  const currency = credit ? 'TRY' : card.currency || 'TRY';
+  const isBankAccount = card.type === 'DEBIT_CARD' || card.type === 'GOLD_ACCOUNT';
   const txs = card.transactions || [];
   const limit = card.creditLimit || 0;
   const debt = card.currentDebt || 0;
@@ -217,7 +216,7 @@ export const CardDetailScreen: React.FC<RootScreenProps<'CardDetail'>> = ({ rout
                       }
                       title={t.title || (spend ? 'Harcama' : 'Yükleme')}
                       subtitle={[t.categoryName, t.note && t.note !== t.title ? t.note : undefined].filter(Boolean).join(' · ') || undefined}
-                      value={`${spend ? '−' : '+'}${formatMoney(t.amount, currency)}`}
+                      value={`${spend ? '−' : '+'}${formatCardBalance(card, t.amount)}`}
                       valueTone={spend ? 'danger' : 'success'}
                     />
                   );

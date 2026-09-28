@@ -3,12 +3,13 @@ import { View } from 'react-native';
 
 import { Gradient, iconByName, Text } from '../../design';
 import { formatMoney } from '../../logic/format';
-import { CARD_TYPE_META, cardAvailable, isCreditCard } from '../../logic/selectors';
+import { CARD_TYPE_META, cardAvailable, isCreditCard, isGoldAccount } from '../../logic/selectors';
+import { formatAssetQuantityDisplay } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import type { PaymentCard, PaymentCardType } from '../../types';
 
 /** Display order of card groups. */
-export const CARD_TYPE_ORDER: PaymentCardType[] = ['CREDIT_CARD', 'DEBIT_CARD', 'FOOD_CARD', 'PREPAID_CARD', 'CASH_WALLET'];
+export const CARD_TYPE_ORDER: PaymentCardType[] = ['CREDIT_CARD', 'DEBIT_CARD', 'GOLD_ACCOUNT', 'FOOD_CARD', 'PREPAID_CARD', 'CASH_WALLET'];
 
 export const CARD_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#14b8a6', '#334155', '#b45309'];
 
@@ -16,9 +17,16 @@ export const PROVIDER_SUGGESTIONS: Record<PaymentCardType, string[]> = {
   FOOD_CARD: ['Sodexo / Pluxee', 'Multinet', 'Ticket', 'Metropol', 'Setcard'],
   CREDIT_CARD: ['Garanti BBVA', 'İş Bankası', 'Yapı Kredi', 'Akbank', 'Ziraat', 'QNB', 'Enpara'],
   DEBIT_CARD: ['Garanti BBVA', 'İş Bankası', 'Yapı Kredi', 'Akbank', 'Ziraat', 'QNB', 'Enpara'],
+  GOLD_ACCOUNT: ['Fiziki Kasa', 'İş Bankası', 'Garanti BBVA', 'Ziraat', 'Kapalıçarşı'],
   PREPAID_CARD: ['Papara', 'Paycell'],
   CASH_WALLET: ['Nakit'],
 };
+
+/** Card balance formatted for its own unit: TRY money, foreign-currency money, or a gold quantity. */
+export function formatCardBalance(card: PaymentCard, amount: number): string {
+  if (isGoldAccount(card)) return formatAssetQuantityDisplay(amount, card.currency) ?? `${amount.toLocaleString('tr-TR')} Gram`;
+  return formatMoney(amount, card.currency || 'TRY');
+}
 
 /** Same spend categories the web card spend form offers. */
 export const SPEND_CATEGORIES: { name: string; color: string; icon: string }[] = [
@@ -61,7 +69,6 @@ export const CardVisual: React.FC<{ card: PaymentCard; compact?: boolean }> = ({
   const meta = CARD_TYPE_META[card.type];
   const Icon = iconByName(meta?.icon);
   const color = card.color || '#6366f1';
-  const currency = card.currency || 'TRY';
   return (
     <Gradient
       colors={[color, darken(color, 0.55)]}
@@ -97,7 +104,7 @@ export const CardVisual: React.FC<{ card: PaymentCard; compact?: boolean }> = ({
             {credit ? 'Kullanılabilir' : 'Bakiye'}
           </Text>
           <Text variant={compact ? 'title' : 'amount'} tone="inverse" numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(cardAvailable(card), credit ? 'TRY' : currency)}
+            {credit ? formatMoney(cardAvailable(card), 'TRY') : formatCardBalance(card, cardAvailable(card))}
           </Text>
           <View style={tw`flex-row items-center justify-between mt-1`}>
             <Text variant="footnote" tone="inverse" className="opacity-90" numberOfLines={1}>

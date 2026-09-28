@@ -260,7 +260,13 @@ export const CARD_TYPE_META: Record<PaymentCard['type'], { label: string; icon: 
   FOOD_CARD: { label: 'Yemek Kartı', icon: 'Utensils' },
   CASH_WALLET: { label: 'Nakit', icon: 'Wallet' },
   PREPAID_CARD: { label: 'Ön Ödemeli', icon: 'Smartphone' },
+  GOLD_ACCOUNT: { label: 'Altın Hesabı', icon: 'Coins' },
 };
+
+/** True for card types whose `balance` is a gold quantity (in `currency`, a gold unit key) rather than money. */
+export function isGoldAccount(card: Pick<PaymentCard, 'type'>): boolean {
+  return card.type === 'GOLD_ACCOUNT';
+}
 
 /** Spendable amount shown on a card tile. */
 export function cardAvailable(card: PaymentCard): number {

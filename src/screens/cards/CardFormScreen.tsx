@@ -19,7 +19,7 @@ import {
 } from '../../design';
 import { formatMoney, isoDate, parseAmount } from '../../logic/format';
 import { CARD_TYPE_META, isCreditCard } from '../../logic/selectors';
-import { BANK_CARD_CURRENCIES, CUTOFF_PRESETS } from '../../lib/currencyUnits';
+import { BANK_CARD_CURRENCIES, CURRENCY_UNITS, CUTOFF_PRESETS, getCurrencyUnitConfig } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
 import { useAppNavigation, type RootScreenProps } from '../../navigation/types';
 import { useAppStore } from '../../store/useAppStore';
@@ -29,6 +29,16 @@ import { CARD_COLORS, CARD_TYPE_ORDER, CardVisual, PROVIDER_SUGGESTIONS } from '
 type CurrencyCode = 'TRY' | 'USD' | 'EUR' | 'GBP';
 const CURRENCY_SWATCHES: SwatchOption[] = BANK_CARD_CURRENCIES.map((c) => ({ value: c.code, label: c.label, emoji: c.icon, color: c.color }));
 
+// The exact four gold units requested for gold accounts — not the full picker (which also
+// has cumhuriyet/ons) since those don't fit the "hesap" (running balance) mental model as well.
+const GOLD_ACCOUNT_UNITS = ['GOLD_GRAM', 'GOLD_QUARTER', 'GOLD_HALF', 'GOLD_FULL'] as const;
+const GOLD_UNIT_SWATCHES: SwatchOption[] = GOLD_ACCOUNT_UNITS.map((key) => ({
+  value: key,
+  label: CURRENCY_UNITS[key].label,
+  emoji: CURRENCY_UNITS[key].icon,
+  color: CURRENCY_UNITS[key].color,
+}));
+
 const DAY_OPTIONS = [{ value: '', label: 'Belirtilmedi' }, ...Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Her ayın ${i + 1}. günü` }))];
 
 const DEFAULT_NAMES: Record<PaymentCardType, string> = {
@@ -37,6 +47,7 @@ const DEFAULT_NAMES: Record<PaymentCardType, string> = {
   FOOD_CARD: 'Yemek Kartım',
   CASH_WALLET: 'Nakit Cüzdan',
   PREPAID_CARD: 'Ön Ödemeli Kart',
+  GOLD_ACCOUNT: 'Altın Hesabım',
 };
 
 const numStr = (n?: number) => (n ? String(n).replace('.', ',') : '');
@@ -58,6 +69,9 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
   const [last4, setLast4] = useState(existing?.last4 ?? '');
   const [color, setColor] = useState(existing?.color ?? CARD_COLORS[0]);
   const [currency, setCurrency] = useState<CurrencyCode>((existing?.currency as CurrencyCode) || 'TRY');
+  const [goldUnit, setGoldUnit] = useState<string>(
+    existing?.currency && (GOLD_ACCOUNT_UNITS as readonly string[]).includes(existing.currency) ? existing.currency : 'GOLD_GRAM',
+  );
   const [limit, setLimit] = useState(numStr(existing?.creditLimit));
   const [debt, setDebt] = useState(numStr(existing?.currentDebt));
   const [cutoffDay, setCutoffDay] = useState(existing?.cutoffDay ? String(existing.cutoffDay) : '');
@@ -68,8 +82,10 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
 
   const credit = type === 'CREDIT_CARD';
   const food = type === 'FOOD_CARD';
+  const gold = type === 'GOLD_ACCOUNT';
   const hasCurrency = type === 'DEBIT_CARD' || type === 'CASH_WALLET';
-  const effectiveCurrency = hasCurrency ? currency : 'TRY';
+  const effectiveCurrency = hasCurrency ? currency : gold ? goldUnit : 'TRY';
+  const goldUnitSuffix = getCurrencyUnitConfig(goldUnit).unitSuffix;
   const finalName = name.trim() || (provider.trim() ? `${provider.trim()} ${CARD_TYPE_META[type].label}` : '');
   const last4Error = last4 && last4.length !== 4 ? '4 hane girin' : undefined;
   const valid = !!finalName && !last4Error && (!credit || parseAmount(limit) > 0);
@@ -196,7 +212,7 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
 
       <TextField label="Kart adı" value={name} onChangeText={setName} placeholder={DEFAULT_NAMES[type]} hint={!name.trim() && finalName ? `Boş bırakılırsa "${finalName}"` : undefined} />
 
-      {type !== 'CASH_WALLET' ? (
+      {type !== 'CASH_WALLET' && type !== 'GOLD_ACCOUNT' ? (
         <TextField
           label="Son 4 hane"
           value={last4}
@@ -220,6 +236,10 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
           options={CURRENCY_SWATCHES}
           sheetTitle="Para birimi seç"
         />
+      ) : null}
+
+      {gold ? (
+        <SwatchField label="Altın birimi" value={goldUnit} onChange={setGoldUnit} options={GOLD_UNIT_SWATCHES} sheetTitle="Altın birimi seç" />
       ) : null}
 
       {credit ? (
@@ -262,6 +282,14 @@ export const CardFormScreen: React.FC<RootScreenProps<'CardForm'>> = ({ route })
           <TextField label="Aylık yükleme (₺)" value={allowance} onChangeText={setAllowance} keyboardType="decimal-pad" placeholder="Örn. 4500" />
           <TextField label="Güncel bakiye (₺)" value={balance} onChangeText={setBalance} keyboardType="decimal-pad" placeholder="0" />
         </>
+      ) : gold ? (
+        <TextField
+          label={`Miktar (${goldUnitSuffix})`}
+          value={balance}
+          onChangeText={setBalance}
+          keyboardType="decimal-pad"
+          placeholder="Örn. 5"
+        />
       ) : (
         <TextField
           label={`Güncel bakiye (${effectiveCurrency})`}

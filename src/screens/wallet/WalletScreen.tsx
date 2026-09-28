@@ -7,6 +7,7 @@ import { formatMoney, formatMonth, monthKey, shiftMonth } from '../../logic/form
 import { CARD_TYPE_META, cardAvailable, categoryBreakdown, expensesInMonth, netWorth, sumTRY, useFinance } from '../../logic/selectors';
 import { useAppNavigation } from '../../navigation/types';
 import { ic, tw } from '../../lib/tw';
+import { formatCardBalance } from '../cards/cardShared';
 import { expenseSubtitle, expenseTitle, useCategoryMeta, useMonthState, useRefresh } from './shared';
 
 const QuickAction: React.FC<{ icon: LucideIcon; label: string; color: string; onPress: () => void }> = ({ icon: Icon, label, color, onPress }) => (
@@ -135,7 +136,7 @@ export const WalletScreen: React.FC = () => {
                       {card.name}
                     </Text>
                     <Text variant="headline" tone="inverse" numberOfLines={1} adjustsFontSizeToFit>
-                      {formatMoney(cardAvailable(card), card.currency || 'TRY')}
+                      {formatCardBalance(card, cardAvailable(card))}
                     </Text>
                   </View>
                 </Btn>
