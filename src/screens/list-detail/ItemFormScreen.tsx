@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Dimensions, Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ExternalLink, FileQuestion, Link2, Minus, Plus, Trash2, X as XIcon } from 'lucide-react-native';
 
 import {
@@ -32,6 +33,8 @@ import { UNITS, useAccessibleList, useCategoriesFor, usePeople } from './helpers
 
 type Priority = NonNullable<ListItem['priority']>;
 type DueQuick = 'today' | 'tomorrow' | 'week' | 'none' | 'custom';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
   { value: 'LOW', label: 'Düşük' },
@@ -92,6 +95,7 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
   const [photos, setPhotos] = useState<string[]>(item?.photos ?? []);
   const [links, setLinks] = useState<string[]>(item?.links ?? []);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   if (!list || (isEdit && !item)) {
     return (
@@ -308,7 +312,9 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={tw`gap-2 px-1`}>
             {photos.map((uri, index) => (
               <View key={`${uri}-${index}`}>
-                <Image source={{ uri }} style={tw`w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800`} />
+                <Pressable onPress={() => setViewerIndex(index)} accessibilityRole="button" accessibilityLabel="Fotoğrafı büyüt">
+                  <Image source={{ uri }} style={tw`w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800`} />
+                </Pressable>
                 <Btn
                   onPress={() => setPhotos((prev) => prev.filter((_, i) => i !== index))}
                   accessibilityLabel="Fotoğrafı kaldır"
@@ -433,6 +439,32 @@ export const ItemFormScreen: React.FC<RootScreenProps<'ItemForm'>> = ({ navigati
       ) : null}
 
       <TextField label="Not" value={content} onChangeText={setContent} placeholder="İsteğe bağlı" multiline />
+
+      <Modal visible={viewerIndex !== null} transparent animationType="fade" onRequestClose={() => setViewerIndex(null)}>
+        <View style={tw`flex-1 bg-black`}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: (viewerIndex ?? 0) * SCREEN_WIDTH, y: 0 }}
+          >
+            {photos.map((uri, index) => (
+              <Pressable key={`${uri}-${index}`} onPress={() => setViewerIndex(null)} style={{ width: SCREEN_WIDTH, height: '100%' }}>
+                <Image source={{ uri }} style={tw`flex-1`} resizeMode="contain" />
+              </Pressable>
+            ))}
+          </ScrollView>
+          <SafeAreaView style={tw`absolute top-0 right-0`}>
+            <Btn
+              onPress={() => setViewerIndex(null)}
+              accessibilityLabel="Kapat"
+              className="w-10 h-10 rounded-full bg-white/20 items-center justify-center m-3"
+            >
+              <XIcon size={20} color="#fff" />
+            </Btn>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </FormScreen>
   );
 };

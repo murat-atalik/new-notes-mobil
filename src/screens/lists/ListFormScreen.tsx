@@ -57,7 +57,6 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
 
   const isRoom = type === 'ROOM';
   const isWeight = type === 'WEIGHT';
-  const meta = isRoom ? ROOM_META : isWeight ? WEIGHT_META : LIST_TYPE_META[type];
   const typeTemplates = useMemo(
     () => (isRoom || isWeight ? [] : templates.filter((t) => t.type === type)),
     [templates, type, isRoom, isWeight],
@@ -176,11 +175,8 @@ export const ListFormScreen: React.FC<RootScreenProps<'ListForm'>> = ({ navigati
           </Text>
         </View>
       ) : (
-        <View style={tw`items-center gap-2 pt-1`}>
+        <View style={tw`items-center pt-1`}>
           <IconTile icon={icon} color={color} size="lg" solid />
-          <Text variant="footnote" tone="muted">
-            {meta.singular}
-          </Text>
         </View>
       )}
 
