@@ -874,7 +874,7 @@ export const useAppStore = create<AppState>((set, get) => {
       try {
         set({ isFetchingRates: true });
         const url = force ? '/api/exchange-rates?force=true' : '/api/exchange-rates';
-        const res = await fetch(API_BASE_URL + url);
+        const res = await fetch(API_BASE_URL + url, { signal: AbortSignal.timeout(10000) });
         if (res.ok) {
           const data = await res.json();
           if (data && data.ratesInTRY) {

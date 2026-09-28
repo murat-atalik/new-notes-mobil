@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Landmark, PiggyBank, Plus } from 'lucide-react-native';
 
 import { Card, EmptyState, IconButton, IconTile, ProgressBar, Section, StackScreen, Stat, Text } from '../../design';
@@ -10,7 +10,6 @@ import {
   CURRENCY_UNIT_LIST,
   formatAssetQuantityDisplay,
   getCurrencyRateInTRY,
-  getCurrencySymbol,
   getCurrencyUnitConfig,
 } from '../../lib/currencyUnits';
 import { tw } from '../../lib/tw';
@@ -25,6 +24,40 @@ type SavingsRow = { key: string; amountTRY: number } & (
   | { kind: 'asset'; asset: SavingsAsset }
   | { kind: 'card'; card: PaymentCard }
 );
+
+/** One labeled, horizontally scrolling strip of rate cards (Döviz or Altın). */
+const RateRow: React.FC<{ label: string; keys: string[]; rates: Record<string, number> }> = ({ label, keys, rates }) => {
+  if (!keys.length) return null;
+  return (
+    <View style={tw`gap-2`}>
+      <Text variant="subhead" weight="bold" tone="muted" className="px-1">
+        {label}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`gap-2.5 px-1`} style={tw`-mx-1`}>
+        {keys.map((key) => {
+          const cfg = getCurrencyUnitConfig(key);
+          const rate = getCurrencyRateInTRY(key, rates);
+          return (
+            <View
+              key={key}
+              style={[tw`w-28 rounded-2xl p-3 gap-2.5 border`, { backgroundColor: `${cfg.color}14`, borderColor: `${cfg.color}33` }]}
+            >
+              <IconTile emoji={cfg.icon} color={cfg.color} size="sm" />
+              <View>
+                <Text variant="caption" tone="muted" weight="semibold" numberOfLines={1}>
+                  {cfg.unitSuffix}
+                </Text>
+                <Text variant="subhead" weight="bold" numberOfLines={1} adjustsFontSizeToFit style={{ color: cfg.color }}>
+                  {formatMoney(rate, 'TRY', rate < 100 ? 2 : 0)}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
 
 export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
   const navigation = useAppNavigation();
@@ -68,7 +101,8 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
 
   // Every currency/gold unit a savings entry can be created in — not just the ones already
   // held — so this doubles as a quick reference before adding a new one.
-  const rateKeys = useMemo(() => CURRENCY_UNIT_LIST.filter((u) => u.key !== 'TRY').map((u) => u.key), []);
+  const fxKeys = useMemo(() => CURRENCY_UNIT_LIST.filter((u) => u.category === 'CURRENCY' && u.key !== 'TRY').map((u) => u.key), []);
+  const goldKeys = useMemo(() => CURRENCY_UNIT_LIST.filter((u) => u.category === 'GOLD').map((u) => u.key), []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -92,10 +126,10 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
         />
       ) : (
         <>
-          {rateKeys.length ? (
-            <Card className="gap-2">
-              <View style={tw`flex-row items-center justify-between`}>
-                <Text variant="footnote" tone="muted" weight="semibold">
+          {fxKeys.length || goldKeys.length ? (
+            <View style={tw`gap-3`}>
+              <View style={tw`flex-row items-center justify-between px-1`}>
+                <Text variant="headline" className="text-[18px]">
                   Güncel kurlar
                 </Text>
                 {exchangeRatesDate ? (
@@ -104,23 +138,9 @@ export const SavingsScreen: React.FC<RootScreenProps<'Savings'>> = () => {
                   </Text>
                 ) : null}
               </View>
-              <View style={tw`flex-row flex-wrap gap-2`}>
-                {rateKeys.map((key) => {
-                  const cfg = getCurrencyUnitConfig(key);
-                  const rate = getCurrencyRateInTRY(key, rates);
-                  return (
-                    <View key={key} style={[tw`flex-row items-center gap-1.5 px-3 h-9 rounded-full`, { backgroundColor: `${cfg.color}14` }]}>
-                      <Text variant="caption" weight="bold" tone="muted">
-                        {`1 ${getCurrencySymbol(key)}`}
-                      </Text>
-                      <Text variant="caption" weight="bold" style={{ color: cfg.color }}>
-                        {formatMoney(rate, 'TRY', 2)}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </Card>
+              <RateRow label="Döviz" keys={fxKeys} rates={rates} />
+              <RateRow label="Altın" keys={goldKeys} rates={rates} />
+            </View>
           ) : null}
 
           <Card className="gap-4">
