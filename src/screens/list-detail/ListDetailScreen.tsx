@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CheckCheck, Eraser, FileQuestion, LogOut, MoreHorizontal, Pencil, Plus, Trash2, Undo2, UserPlus } from 'lucide-react-native';
+import { CheckCheck, Eraser, FileQuestion, LogOut, MoreHorizontal, Pencil, Plus, Trash2, Undo2 } from 'lucide-react-native';
 
 import {
   EmptyState,
@@ -150,12 +150,7 @@ export const ListDetailScreen: React.FC<RootScreenProps<'ListDetail'>> = ({ navi
     showActionSheet({ title: list.title, options });
   };
 
-  const right = (
-    <>
-      <IconButton icon={UserPlus} label="Paylaş" onPress={() => navigation.navigate('ListShare', { listId: list.id })} />
-      <IconButton icon={MoreHorizontal} label="Diğer işlemler" onPress={openMenu} />
-    </>
-  );
+  const right = <IconButton icon={MoreHorizontal} label="Diğer işlemler" onPress={openMenu} />;
 
   // Checkout lives in the shopping summary card; the footer is only the capture bar.
   // Room products need price/quantity/photos up front, so they get a full form via the FAB below.

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import { Copy, Layers, LogOut, Pencil, Plus, Search, Share2, Ticket, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
+import { Copy, Layers, LogOut, Pencil, Plus, Search, Trash2, User as UserIcon, Users, Users2, X } from 'lucide-react-native';
 
 import {
   confirmAction,
@@ -120,7 +120,6 @@ export const ListsScreen: React.FC = () => {
     const { isOwner, canLeave } = listMembership(list, currentUser);
     const options: ActionSheetOption[] = [
       { label: 'Düzenle', icon: Pencil, onPress: () => navigation.navigate('ListForm', { listId: list.id }) },
-      { label: 'Paylaş & Davet', icon: Share2, onPress: () => navigation.navigate('ListShare', { listId: list.id }) },
       {
         label: 'Kopyala',
         icon: Copy,
@@ -171,7 +170,6 @@ export const ListsScreen: React.FC = () => {
   return (
     <Screen
       title="Listeler"
-      right={<IconButton icon={Ticket} label="Kodla katıl" onPress={() => navigation.navigate('JoinList')} />}
       refreshing={refreshing}
       onRefresh={onRefresh}
       overlay={<FAB icon={Plus} onPress={openCreate} aboveTabBar />}
