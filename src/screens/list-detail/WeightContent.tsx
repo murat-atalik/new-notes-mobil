@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Scale, TrendingDown, TrendingUp, Trash2 } from 'lucide-react-native';
 
-import { Button, Card, DateField, EmptyState, IconTile, Sheet, Text, TextField, confirmAction, showActionSheet, showToast, palette } from '../../design';
+import { Button, Card, DateField, EmptyState, IconTile, Sheet, Text, TextField, confirmAction, showToast, palette } from '../../design';
 import { formatDay, isoDate, parseAmount } from '../../logic/format';
 import { weightDiffs, weightSummary, type WeightEntry } from '../../logic/selectors';
 import { tw } from '../../lib/tw';
@@ -57,6 +57,11 @@ const EntryRow: React.FC<{ entry: WeightEntry & { diff: number | null }; previou
         <Text variant="footnote" tone="muted" numberOfLines={1}>
           {dayGap ? `${formatDay(entry.date)} · bir önceki ölçümden ${dayGap} gün sonra` : formatDay(entry.date)}
         </Text>
+        {entry.note ? (
+          <Text variant="footnote" tone="faint" numberOfLines={1} ellipsizeMode="tail">
+            {entry.note.replace(/\s*\n\s*/g, ' ')}
+          </Text>
+        ) : null}
       </View>
       <DiffBadge diff={entry.diff} />
     </Pressable>
@@ -75,12 +80,14 @@ const EntrySheet: React.FC<{ item: ListItem | null; listId: string; visible: boo
   const deleteItem = useAppStore((s) => s.deleteItem);
   const [date, setDate] = useState(item?.dueDate || isoDate());
   const [weight, setWeight] = useState(numStr(item?.price));
+  const [note, setNote] = useState(item?.content ?? '');
 
   // Reset local state whenever a different entry (or a fresh "add") is opened.
   React.useEffect(() => {
     if (visible) {
       setDate(item?.dueDate || isoDate());
       setWeight(numStr(item?.price));
+      setNote(item?.content ?? '');
     }
   }, [visible, item]);
 
@@ -91,10 +98,10 @@ const EntrySheet: React.FC<{ item: ListItem | null; listId: string; visible: boo
   const save = () => {
     if (!valid) return;
     if (item) {
-      updateItem(item.id, { price: value, dueDate: date, title: formatDay(date) });
+      updateItem(item.id, { price: value, dueDate: date, title: formatDay(date), content: note.trim() });
       showToast('Ölçüm güncellendi');
     } else {
-      addItem({ listId, title: formatDay(date), isCompleted: false, price: value, quantity: 1, unit: 'adet', categoryId: '', dueDate: date });
+      addItem({ listId, title: formatDay(date), isCompleted: false, price: value, quantity: 1, unit: 'adet', categoryId: '', dueDate: date, content: note.trim() });
       showToast('Ölçüm eklendi');
     }
     onClose();
@@ -116,6 +123,7 @@ const EntrySheet: React.FC<{ item: ListItem | null; listId: string; visible: boo
     <Sheet visible={visible} onClose={onClose} title={item ? 'Ölçümü Düzenle' : 'Ölçüm Ekle'}>
       <DateField label="Tarih" value={date} onChange={setDate} />
       <TextField label="Kilo (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="Örn. 82,4" autoFocus={!item} />
+      <TextField label="Açıklama" value={note} onChangeText={setNote} placeholder="İsteğe bağlı (örn. sabah, aç karnına)" maxLength={200} multiline compact />
       <Button title="Kaydet" onPress={save} disabled={!valid} fullWidth />
       {item ? <Button title="Sil" icon={Trash2} variant="dangerTinted" onPress={remove} fullWidth /> : null}
     </Sheet>
@@ -131,12 +139,6 @@ export const WeightContent: React.FC<{ listId: string; items: ListItem[]; adding
   const [editing, setEditing] = useState<ListItem | null>(null);
   const diffs = weightDiffs(items); // newest first
   const summary = weightSummary(items);
-
-  const openMenu = (item: ListItem) =>
-    showActionSheet({
-      title: formatDay(item.dueDate),
-      options: [{ label: 'Düzenle', onPress: () => setEditing(item) }],
-    });
 
   if (items.length === 0) {
     return (
@@ -178,7 +180,7 @@ export const WeightContent: React.FC<{ listId: string; items: ListItem[]; adding
             key={entry.id}
             entry={entry}
             previousDate={diffs[index + 1]?.date}
-            onPress={() => openMenu(items.find((i) => i.id === entry.id)!)}
+            onPress={() => setEditing(items.find((i) => i.id === entry.id)!)}
           />
         ))}
       </RowGroup>

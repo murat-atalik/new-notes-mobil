@@ -111,12 +111,12 @@ export function roomProgress(items: ListItem[]) {
  * Weight-tracking (Kilo Takibi) reuses the List/Item shape: an entry's date lives in
  * `dueDate` and its measurement (kg) in `price` — see the `AnyListType` comment in types.ts.
  */
-export type WeightEntry = { id: string; date: string; value: number };
+export type WeightEntry = { id: string; date: string; value: number; note?: string };
 
 /** Entries sorted oldest → newest. */
 export function weightSeries(items: ListItem[]): WeightEntry[] {
   return items
-    .map((i) => ({ id: i.id, date: i.dueDate || i.createdAt, value: i.price || 0 }))
+    .map((i) => ({ id: i.id, date: i.dueDate || i.createdAt, value: i.price || 0, note: i.content }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 

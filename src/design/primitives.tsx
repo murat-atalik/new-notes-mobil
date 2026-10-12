@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
-  KeyboardAvoidingView,
+  Keyboard,
   PanResponder,
   Modal,
   Platform,
@@ -111,6 +111,41 @@ export const Gradient: React.FC<
 };
 
 /**
+ * Lifts its content above the iOS keyboard. The keyboard state lives here (not in `Overlay`)
+ * on purpose: re-rendering the natively-animated parent after its animation finished makes
+ * React re-apply the stale JS animated value and throws the sheet off-screen.
+ * Android resizes the window itself.
+ */
+const KeyboardLift: React.FC<{ style?: StyleProp<ViewStyle>; bottomInset: number; children?: React.ReactNode }> = ({
+  style,
+  bottomInset,
+  children,
+}) => {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const change = Keyboard.addListener('keyboardWillChangeFrame', (e) =>
+      setKeyboardHeight(Math.max(0, Dimensions.get('window').height - e.endCoordinates.screenY)),
+    );
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardHeight(0));
+    const metrics = Keyboard.metrics();
+    if (metrics) setKeyboardHeight(metrics.height);
+    return () => {
+      change.remove();
+      hide.remove();
+    };
+  }, []);
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: keyboardHeight }, style, { paddingBottom: keyboardHeight > 0 ? 8 : bottomInset }]}
+    >
+      {children}
+    </View>
+  );
+};
+
+/**
  * Modal wrapper for the web's `fixed inset-0 bg-black/60 ...` dialogs.
  *
  * - `sheet` (default): phone-native floating sheet anchored to the bottom, slides
@@ -139,7 +174,6 @@ export const Overlay: React.FC<{
   const backdrop = useRef(new Animated.Value(0)).current;
   const offset = useRef(new Animated.Value(isSheet ? screenHeight : 24)).current;
   const closing = useRef(false);
-
   useEffect(() => {
     if (!visible) return;
     closing.current = false;
@@ -180,33 +214,39 @@ export const Overlay: React.FC<{
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={tw`flex-1`}>
+      <View style={tw`flex-1`}>
         <Animated.View style={[tw.style('absolute inset-0', overlayClassName), { opacity: backdrop }]}>
           <Pressable style={tw`flex-1`} onPress={dismiss} accessibilityLabel="Kapat" />
         </Animated.View>
         <Animated.View
           pointerEvents="box-none"
           style={[
-            tw`flex-1`,
-            position === 'center' ? tw`justify-center p-4` : tw`justify-end`,
-            position === 'sheet' ? { paddingHorizontal: 8, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 8 } : null,
-            position === 'bottom' ? { paddingTop: insets.top + 12 } : null,
+            tw`absolute inset-0`,
             position === 'center' ? { opacity: backdrop } : null,
             { transform: [{ translateY: offset }] },
           ]}
         >
-          {isSheet && dismissible ? (
-            <View
-              {...pan.panHandlers}
-              accessibilityLabel="Kapatmak için aşağı kaydırın"
-              style={tw`self-center w-32 h-6 items-center justify-center`}
-            >
-              <View style={tw`w-10 h-1.5 rounded-full bg-white/70`} />
-            </View>
-          ) : null}
-          {children}
+          <KeyboardLift
+            style={[
+              position === 'center' ? tw`justify-center p-4` : tw`justify-end`,
+              position === 'sheet' ? { paddingHorizontal: 8, paddingTop: insets.top + 12 } : null,
+              position === 'bottom' ? { paddingTop: insets.top + 12 } : null,
+            ]}
+            bottomInset={position === 'sheet' ? insets.bottom + 8 : 0}
+          >
+            {isSheet && dismissible ? (
+              <View
+                {...pan.panHandlers}
+                accessibilityLabel="Kapatmak için aşağı kaydırın"
+                style={tw`self-center w-32 h-6 items-center justify-center`}
+              >
+                <View style={tw`w-10 h-1.5 rounded-full bg-white/70`} />
+              </View>
+            ) : null}
+            {children}
+          </KeyboardLift>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };

@@ -20,10 +20,17 @@ import * as Icons from 'lucide-react-native';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, type LucideIcon, Plus, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { create } from 'zustand';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet';
 
 import { useTheme } from '../hooks/useTheme';
 import { ic, tw } from '../lib/tw';
-import { Btn, DateInput, Overlay, Select, Text as BaseText, type SelectOption } from './primitives';
+import { Btn, DateInput, Select, Text as BaseText, type SelectOption } from './primitives';
 
 export { Btn, DateInput, Gradient, Grid, Input, Overlay, Panel, Progress, Select, showToast, ToastHost } from './primitives';
 export type { SelectOption } from './primitives';
@@ -670,28 +677,29 @@ export const FieldLabel: React.FC<{ label?: string; hint?: string; error?: strin
 );
 
 export const TextField: React.FC<
-  TextInputProps & { label?: string; hint?: string; error?: string; icon?: LucideIcon; inputRef?: React.Ref<TextInputHandle> }
-> = ({ label, hint, error, icon: Icon, secureTextEntry, multiline, style, inputRef, ...rest }) => {
+  TextInputProps & { label?: string; hint?: string; error?: string; icon?: LucideIcon; inputRef?: React.Ref<TextInputHandle>; compact?: boolean }
+> = ({ label, hint, error, icon: Icon, secureTextEntry, multiline, compact, style, inputRef, ...rest }) => {
   const [hidden, setHidden] = useState(true);
+  const Input = React.useContext(InSheetContext) ? BottomSheetTextInput : TextInput;
   return (
     <FieldLabel label={label} hint={hint} error={error}>
       <View
         style={tw.style(
           fieldBox,
           'flex-row px-4 gap-2.5',
-          multiline ? 'items-start py-3 min-h-[110px]' : 'items-center h-[52px]',
+          multiline ? (compact ? 'items-start py-3 min-h-[84px]' : 'items-start py-3 min-h-[110px]') : 'items-center h-[52px]',
           error ? 'border-rose-400 dark:border-rose-700' : '',
         )}
       >
         {Icon ? <Icon {...ic('w-5 h-5 text-slate-400')} /> : null}
-        <TextInput
-          ref={inputRef}
+        <Input
+          ref={inputRef as any}
           placeholderTextColor={palette.slate400}
           secureTextEntry={secureTextEntry && hidden}
           multiline={multiline}
           textAlignVertical={multiline ? 'top' : 'center'}
           {...rest}
-          style={[tw`flex-1 text-[16px] text-slate-900 dark:text-white`, multiline ? tw`min-h-[88px]` : null, style]}
+          style={[tw`flex-1 text-[16px] text-slate-900 dark:text-white`, multiline ? (compact ? tw`min-h-[56px]` : tw`min-h-[88px]`) : null, style]}
         />
         {secureTextEntry ? (
           <Pressable hitSlop={10} onPress={() => setHidden((h) => !h)} accessibilityLabel={hidden ? 'Şifreyi göster' : 'Şifreyi gizle'}>
@@ -1129,95 +1137,111 @@ export const Stat: React.FC<{ label: string; value: string; tone?: TextTone; cap
  * Sheets, action sheets & confirmation
  * ------------------------------------------------------------------ */
 
-/** Titled bottom sheet for small pickers / actions. */
+/** True inside `Sheet`: inputs must be gorhom's `BottomSheetTextInput` so the sheet can lift above the keyboard. */
+const InSheetContext = React.createContext(false);
+
+/** Titled bottom sheet (gorhom) for small pickers / forms. Needs `BottomSheetModalProvider` (see App.tsx). */
 export const Sheet: React.FC<{ visible: boolean; onClose: () => void; title?: string; children?: React.ReactNode }> = ({
   visible,
   onClose,
   title,
   children,
 }) => {
-  if (!visible) return null;
+  const ref = useRef<BottomSheetModal>(null);
+  const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (visible) ref.current?.present();
+    else ref.current?.dismiss();
+  }, [visible]);
+
+  const renderBackdrop = React.useCallback(
+    (props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.6} pressBehavior="close" />,
+    [],
+  );
+
   return (
-    <Overlay onClose={onClose} position="sheet">
-      <View style={tw`bg-white dark:bg-slate-900 rounded-[28px] p-5 gap-4 max-h-full`}>
+    <BottomSheetModal
+      ref={ref}
+      enableDynamicSizing
+      enablePanDownToClose
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      topInset={insets.top + 12}
+      backdropComponent={renderBackdrop}
+      onDismiss={onClose}
+      backgroundStyle={{ backgroundColor: isDark ? '#0f172a' : '#ffffff', borderRadius: 28 }}
+      handleIndicatorStyle={{ backgroundColor: isDark ? '#475569' : '#cbd5e1', width: 40 }}
+    >
+      <BottomSheetScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[tw`px-5 pt-1 gap-3`, { paddingBottom: insets.bottom + 16 }]}
+      >
         {title ? (
-          <View style={tw`flex-row items-center justify-between`}>
+          <View style={tw`flex-row items-center justify-between mb-1`}>
             <Text variant="title2">{title}</Text>
             <Btn onPress={onClose} accessibilityLabel="Kapat" className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 items-center justify-center">
               <X {...ic('w-4 h-4 text-slate-500 dark:text-slate-300')} />
             </Btn>
           </View>
         ) : null}
-        <ScrollView bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={tw`gap-3`}>
-          {children}
-        </ScrollView>
-      </View>
-    </Overlay>
+        <InSheetContext.Provider value>{children}</InSheetContext.Provider>
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
 };
 
 export type ActionSheetOption = { label: string; icon?: LucideIcon; destructive?: boolean; onPress: () => void };
 
-const actionStore = create<{ title?: string; message?: string; options: ActionSheetOption[] | null }>(() => ({ options: null }));
+type ActionConfig = { title?: string; message?: string; options: ActionSheetOption[] };
+// `open` is separate from the config so the options stay rendered while the sheet animates out.
+const actionStore = create<{ open: boolean; config: ActionConfig | null }>(() => ({ open: false, config: null }));
 
 /** Imperative action sheet (long-press menus, "…" buttons). Rendered by `<ActionSheetHost/>`. */
-export function showActionSheet(config: { title?: string; message?: string; options: ActionSheetOption[] }) {
-  actionStore.setState(config);
+export function showActionSheet(config: ActionConfig) {
+  actionStore.setState({ open: true, config });
 }
 
 export const ActionSheetHost: React.FC = () => {
-  const { title, message, options } = actionStore();
-  const close = () => actionStore.setState({ options: null });
-  if (!options) return null;
+  const { open, config } = actionStore();
+  const close = () => actionStore.setState({ open: false });
+  if (!config) return null;
+  const { title, message, options } = config;
   return (
-    <Overlay onClose={close} position="sheet">
-      <View style={tw`gap-2`}>
-        <View style={tw`bg-white dark:bg-slate-900 rounded-[24px] overflow-hidden`}>
-          {title || message ? (
-            <View style={tw`px-5 pt-4 pb-3 items-center border-b border-slate-100 dark:border-slate-800`}>
-              {title ? (
-                <Text variant="subhead" weight="bold" tone="muted" className="text-center">
-                  {title}
-                </Text>
-              ) : null}
-              {message ? (
-                <Text variant="footnote" tone="muted" className="text-center">
-                  {message}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-          {options.map((opt, index) => {
-            const Icon = opt.icon;
-            return (
-              <Pressable
-                key={opt.label}
-                onPress={() => {
-                  close();
-                  // Let the sheet unmount before the action opens another modal.
-                  setTimeout(opt.onPress, 250);
-                }}
-                style={({ pressed }) => [
-                  tw`flex-row items-center gap-3 px-5 h-14`,
-                  index < options.length - 1 ? tw`border-b border-slate-100 dark:border-slate-800` : null,
-                  pressed ? tw`bg-slate-100 dark:bg-slate-800` : null,
-                ]}
-              >
-                {Icon ? <Icon size={20} color={opt.destructive ? palette.danger : tw.isDark() ? '#e2e8f0' : '#334155'} /> : null}
-                <Text variant="body" tone={opt.destructive ? 'danger' : 'default'} weight="medium">
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Pressable onPress={close} style={tw`bg-white dark:bg-slate-900 rounded-[24px] h-14 items-center justify-center`}>
-          <Text variant="body" weight="bold" tone="brand">
-            Vazgeç
-          </Text>
-        </Pressable>
+    <Sheet visible={open} onClose={close} title={title}>
+      {message ? (
+        <Text variant="footnote" tone="muted">
+          {message}
+        </Text>
+      ) : null}
+      <View style={tw`rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-800/60`}>
+        {options.map((opt, index) => {
+          const Icon = opt.icon;
+          return (
+            <Pressable
+              key={opt.label}
+              onPress={() => {
+                close();
+                // Let the sheet dismiss before the action opens another modal.
+                setTimeout(opt.onPress, 300);
+              }}
+              style={({ pressed }) => [
+                tw`flex-row items-center gap-3 px-4 h-14`,
+                index < options.length - 1 ? tw`border-b border-slate-100 dark:border-slate-700` : null,
+                pressed ? tw`bg-slate-100 dark:bg-slate-800` : null,
+              ]}
+            >
+              {Icon ? <Icon size={20} color={opt.destructive ? palette.danger : tw.isDark() ? '#e2e8f0' : '#334155'} /> : null}
+              <Text variant="body" tone={opt.destructive ? 'danger' : 'default'} weight="medium">
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
-    </Overlay>
+    </Sheet>
   );
 };
 

@@ -4,6 +4,8 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator, type NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { enableScreens } from 'react-native-screens';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ActionSheetHost, ToastHost } from './src/design';
@@ -191,12 +193,16 @@ function Root() {
     : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#f1f5f9', card: '#ffffff' } };
 
   return (
-    <View style={tw`flex-1 bg-slate-100 dark:bg-slate-950`}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <NavigationContainer theme={navTheme}>{isAuthenticated ? <AppStack /> : <AuthFlow />}</NavigationContainer>
-      <ActionSheetHost />
-      <ToastHost />
-    </View>
+    <GestureHandlerRootView style={tw`flex-1`}>
+      <BottomSheetModalProvider>
+        <View style={tw`flex-1 bg-slate-100 dark:bg-slate-950`}>
+          <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+          <NavigationContainer theme={navTheme}>{isAuthenticated ? <AppStack /> : <AuthFlow />}</NavigationContainer>
+          <ActionSheetHost />
+          <ToastHost />
+        </View>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
 
